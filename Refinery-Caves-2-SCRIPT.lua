@@ -1,11 +1,7 @@
--- ============================================================
--- RC2 - VERSIÓN CON TEAM SKEET (FUNCIONAL EN DELTA)
--- ============================================================
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
--- 1. CARGAR TEAM SKEET
-local TeamSkeetLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/L1ZOT/Team-Skeet/main/lib/Source%20V2.lua"))()
-
--- 2. CONFIGURACIÓN Y LOGS
 local folder = "rc2_data"
 local logsFolder = folder .. "/logs"
 local teleportsFile = folder .. "/teleports.json"
@@ -26,20 +22,18 @@ local function writeLog(msg, isError)
         writefile(logFile, existing .. line)
     end)
 end
-writeLog("=== RC2 TEAM SKEET INICIADO ===")
+writeLog("=== RC2 FLUENT INICIADO ===")
 
--- 3. NOTIFICACIONES
 local function notify(text, duration)
     duration = duration or 3
-    TeamSkeetLib:Prompt({
+    Fluent:Notify({
         Title = "⚒️ RC2",
-        Message = text,
+        Content = text,
         Duration = duration
     })
     writeLog(text)
 end
 
--- 4. BASE DE DATOS
 local oreDatabase = {
     ["Stone"] = { tier = 1, fragile = false, price = 3 },
     ["Iron"] = { tier = 1, fragile = false, price = 4 },
@@ -64,7 +58,6 @@ local treeDatabase = {
     ["Goldwood"] = { tier = 4, price = 80 },
 }
 
--- 5. MISIONES
 local missionsDB = {
     {
         id = "tool_reaper",
@@ -297,7 +290,6 @@ local missionsDB = {
     },
 }
 
--- Cargar misiones
 local function loadMissions()
     if isfile(missionsFile) then
         local success, data = pcall(function()
@@ -324,7 +316,6 @@ local function saveMissions()
 end
 loadMissions()
 
--- 6. TELEPORTS
 local teleports = {
     shops = {
         ["🏪 UCS Store"] = {position = {1250, 30, -700}},
@@ -366,7 +357,6 @@ local function saveCustomTeleports()
 end
 loadCustomTeleports()
 
--- 7. FUNCIONES DE JUGADOR
 local function getPlayerMoney()
     local player = game:GetService("Players").LocalPlayer
     local stats = player:FindFirstChild("leaderstats")
@@ -405,7 +395,6 @@ local function getPlayerFishingRod()
     return false
 end
 
--- 8. DETECCIÓN DE RECURSOS
 local function findOres()
     local ores = {}
     for _, obj in pairs(workspace:GetDescendants()) do
@@ -438,7 +427,6 @@ local function findTrees()
     return trees
 end
 
--- 9. TELEPORT FUNCTIONS
 local function teleportToLocation(name)
     local data = nil
     for section, tps in pairs(teleports) do
@@ -481,7 +469,6 @@ local function saveCustomLocation(name)
     return true
 end
 
--- 10. AUTO FARM
 local autoFarmActive = false
 local autoFarmTimer = 70
 local selectedOres = {}
@@ -521,7 +508,6 @@ local function autoFarmLoop()
     end
 end
 
--- 11. AUTO TALA
 local autoChopActive = false
 local function chopTree(tree) task.wait(0.5 + math.random(1, 3) * 0.1) end
 local function autoChopLoop()
@@ -536,7 +522,6 @@ local function autoChopLoop()
     end
 end
 
--- 12. AUTO PESCA
 local autoFishActive = false
 local function autoFishLoop()
     while autoFishActive do
@@ -548,7 +533,6 @@ local function autoFishLoop()
     end
 end
 
--- 13. AUTO MISSIONS
 local function executeMissionStep(mission, stepIndex)
     local step = mission.steps[stepIndex]
     if not step then return false end
@@ -596,7 +580,6 @@ local function startMission(mission)
     end)
 end
 
--- 14. FLY
 local flyActive = false
 local flySpeed = 40
 local flyBodyVelocity = nil
@@ -650,7 +633,6 @@ end
 
 local function toggleFly() flyActive = not flyActive; if flyActive then startFly() else stopFly() end; return flyActive end
 
--- 15. INFINITE JUMP
 local jumpActive = false
 local jumpConnection = nil
 local function toggleInfiniteJump()
@@ -678,7 +660,6 @@ local function toggleInfiniteJump()
     return jumpActive
 end
 
--- 16. TIME DISPLAY
 local timeActive = true
 local timeGui = nil
 local timeLabel = nil
@@ -737,7 +718,6 @@ createTimeGUI()
 task.spawn(function() while task.wait(1) do updateTime() end end)
 local function toggleTime() timeActive = not timeActive; notify("🕐 Time: " .. (timeActive and "ON" or "OFF")); return timeActive end
 
--- 17. ANTI-STAFF
 local antiStaffActive = true
 local staffDetected = false
 local function checkStaff()
@@ -760,7 +740,6 @@ end
 task.spawn(function() while task.wait(10) do checkStaff() end end)
 local function toggleAntiStaff() antiStaffActive = not antiStaffActive; notify("🛡️ Anti-Staff: " .. (antiStaffActive and "ON" or "OFF")); return antiStaffActive end
 
--- 18. ANTI-AFK
 local antiAFKActive = true
 local lastActivity = tick()
 game:GetService("UserInputService").InputBegan:Connect(function() lastActivity = tick() end)
@@ -778,7 +757,6 @@ task.spawn(function()
 end)
 local function toggleAntiAFK() antiAFKActive = not antiAFKActive; notify("💤 Anti-AFK: " .. (antiAFKActive and "ON" or "OFF")); return antiAFKActive end
 
--- 19. ANTI-BAN
 local oldNamecall = getrawmetatable(game).__namecall
 setreadonly(getrawmetatable(game), false)
 getrawmetatable(game).__namecall = newcclosure(function(self, ...)
@@ -792,36 +770,66 @@ end)
 setreadonly(getrawmetatable(game), true)
 writeLog("Anti-Ban/Kick activo")
 
--- 20. CREAR UI CON TEAM SKEET
-local reg = TeamSkeetLib:RichText(Color3.fromRGB(94, 151, 42))
-local win = TeamSkeetLib:Window({
-    Name = [[RC2]],
-    Folder = "rc2_data",
+local Window = Fluent:CreateWindow({
+    Title = "⚒️ RC2",
+    SubTitle = "by orvexpp",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = true,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
 })
 
--- ====== PESTAÑA 1: FARM ======
-local farmTab = win:Tab("🌱 Farm")
-local farmSec = farmTab:Section("⛏️ MINERÍA")
+local Tabs = {
+    Farm = Window:AddTab({ Title = "🌱 Farm", Icon = "pickaxe" }),
+    Missions = Window:AddTab({ Title = "📜 Missions", Icon = "scroll" }),
+    Teleports = Window:AddTab({ Title = "📍 Teleports", Icon = "map-pin" }),
+    Others = Window:AddTab({ Title = "⚙️ Others", Icon = "settings" }),
+    Settings = Window:AddTab({ Title = "⚙️ Settings", Icon = "settings" })
+}
 
-farmSec:Toggle("AutoFarm", function(t)
-    autoFarmActive = t
-    if autoFarmActive then
-        task.spawn(autoFarmLoop)
-        notify("⛏️ AutoFarm iniciado")
-    else
-        notify("⛏️ AutoFarm detenido")
+local Options = Fluent.Options
+
+-- FARM TAB
+Tabs.Farm:AddParagraph({
+    Title = "⛏️ MINERÍA",
+    Content = "Selecciona minerales y activa AutoFarm"
+})
+
+Tabs.Farm:AddToggle("AutoFarm", {
+    Title = "AutoFarm",
+    Default = false,
+    Callback = function(Value)
+        autoFarmActive = Value
+        if autoFarmActive then
+            task.spawn(autoFarmLoop)
+            notify("⛏️ AutoFarm iniciado")
+        else
+            notify("⛏️ AutoFarm detenido")
+        end
     end
-end)
+})
 
--- Slider de tiempo (Team Skeet)
-farmSec:Slider("⏱️ Tiempo para vender", 10, 260, 70, function(t)
-    autoFarmTimer = t
-    local minutes = math.floor(t / 60)
-    local seconds = t % 60
-    notify("⏱️ Tiempo: " .. (minutes > 0 and minutes .. "m " .. seconds .. "s" or seconds .. "s"))
-end)
+Tabs.Farm:AddSlider("FarmTimer", {
+    Title = "⏱️ Tiempo para vender",
+    Default = 70,
+    Min = 10,
+    Max = 260,
+    Rounding = 1,
+    Callback = function(Value)
+        autoFarmTimer = Value
+        local minutes = math.floor(Value / 60)
+        local seconds = Value % 60
+        notify("⏱️ Tiempo: " .. (minutes > 0 and minutes .. "m " .. seconds .. "s" or seconds .. "s"))
+    end
+})
 
-farmSec:Button("🔄 Refrescar minerales", function()
+Tabs.Farm:AddParagraph({
+    Title = "📋 Selecciona minerales",
+    Content = "Toca los botones para seleccionar/deseleccionar"
+})
+
+local function createOreButtons()
     local ores = findOres()
     local unique = {}
     for _, ore in pairs(ores) do
@@ -831,27 +839,49 @@ farmSec:Button("🔄 Refrescar minerales", function()
     end
     for _, name in ipairs(unique) do
         local selected = table.find(selectedOres, name) ~= nil
-        farmSec:Button((selected and "✅ " or "⬜ ") .. name .. " (Tier " .. oreDatabase[name].tier .. ")", function()
-            local idx = table.find(selectedOres, name)
-            if idx then table.remove(selectedOres, idx) else table.insert(selectedOres, name) end
-        end)
+        Tabs.Farm:AddButton({
+            Title = (selected and "✅ " or "⬜ ") .. name .. " (Tier " .. oreDatabase[name].tier .. ")",
+            Callback = function()
+                local idx = table.find(selectedOres, name)
+                if idx then table.remove(selectedOres, idx) else table.insert(selectedOres, name) end
+            end
+        })
     end
-    notify("🔄 Lista actualizada")
-end)
+end
 
--- TALA
-local chopSec = farmTab:Section("🪓 TALA")
-chopSec:Toggle("Auto Tala", function(t)
-    autoChopActive = t
-    if autoChopActive then
-        task.spawn(autoChopLoop)
-        notify("🪓 Auto Tala iniciado")
-    else
-        notify("🪓 Auto Tala detenido")
+Tabs.Farm:AddButton({
+    Title = "🔄 Refrescar minerales",
+    Callback = function()
+        createOreButtons()
+        notify("🔄 Lista actualizada")
     end
-end)
+})
 
-chopSec:Button("🔄 Refrescar árboles", function()
+Tabs.Farm:AddParagraph({
+    Title = "🪓 TALA",
+    Content = "Selecciona árboles y activa Auto Tala"
+})
+
+Tabs.Farm:AddToggle("AutoChop", {
+    Title = "Auto Tala",
+    Default = false,
+    Callback = function(Value)
+        autoChopActive = Value
+        if autoChopActive then
+            task.spawn(autoChopLoop)
+            notify("🪓 Auto Tala iniciado")
+        else
+            notify("🪓 Auto Tala detenido")
+        end
+    end
+})
+
+Tabs.Farm:AddParagraph({
+    Title = "🌳 Selecciona árboles",
+    Content = "Toca los botones para seleccionar/deseleccionar"
+})
+
+local function createTreeButtons()
     local trees = findTrees()
     local unique = {}
     for _, tree in pairs(trees) do
@@ -861,176 +891,318 @@ chopSec:Button("🔄 Refrescar árboles", function()
     end
     for _, name in ipairs(unique) do
         local selected = table.find(selectedTrees, name) ~= nil
-        chopSec:Button((selected and "✅ " or "⬜ ") .. name .. " (Tier " .. treeDatabase[name].tier .. ")", function()
-            local idx = table.find(selectedTrees, name)
-            if idx then table.remove(selectedTrees, idx) else table.insert(selectedTrees, name) end
-        end)
+        Tabs.Farm:AddButton({
+            Title = (selected and "✅ " or "⬜ ") .. name .. " (Tier " .. treeDatabase[name].tier .. ")",
+            Callback = function()
+                local idx = table.find(selectedTrees, name)
+                if idx then table.remove(selectedTrees, idx) else table.insert(selectedTrees, name) end
+            end
+        })
     end
-    notify("🔄 Lista actualizada")
-end)
+end
 
--- PESCA
-local fishSec = farmTab:Section("🎣 PESCA")
-fishSec:Toggle("Auto Pesca", function(t)
-    if not getPlayerFishingRod() and t then
-        notify("❌ No tienes caña de pescar equipada")
-        return
+Tabs.Farm:AddButton({
+    Title = "🔄 Refrescar árboles",
+    Callback = function()
+        createTreeButtons()
+        notify("🔄 Lista actualizada")
     end
-    autoFishActive = t
-    if autoFishActive then
-        task.spawn(autoFishLoop)
-        notify("🎣 Auto Pesca iniciado")
-    else
-        notify("🎣 Auto Pesca detenido")
+})
+
+Tabs.Farm:AddParagraph({
+    Title = "🎣 PESCA",
+    Content = "Activa Auto Pesca (necesitas caña equipada)"
+})
+
+Tabs.Farm:AddToggle("AutoFish", {
+    Title = "Auto Pesca",
+    Default = false,
+    Callback = function(Value)
+        if not getPlayerFishingRod() and Value then
+            notify("❌ No tienes caña de pescar equipada")
+            return
+        end
+        autoFishActive = Value
+        if autoFishActive then
+            task.spawn(autoFishLoop)
+            notify("🎣 Auto Pesca iniciado")
+        else
+            notify("🎣 Auto Pesca detenido")
+        end
     end
-end)
+})
 
-fishSec:Button("🛒 Ir a comprar caña", function()
-    teleportToLocation("🏪 UCS Store")
-    notify("📍 Ve a Nautic Finds para comprar una caña")
-end)
+Tabs.Farm:AddButton({
+    Title = "🛒 Ir a comprar caña",
+    Callback = function()
+        teleportToLocation("🏪 UCS Store")
+        notify("📍 Ve a la tienda Nautic Finds para comprar una caña")
+    end
+})
 
--- ====== PESTAÑA 2: MISSIONS ======
-local missionsTab = win:Tab("📜 Missions")
-local missSec = missionsTab:Section("📋 MISIONES")
+-- MISSIONS TAB
+Tabs.Missions:AddParagraph({
+    Title = "📋 MISIONES DISPONIBLES",
+    Content = "Toca una misión para ejecutarla automáticamente"
+})
 
 local function refreshMissions()
     for _, mission in ipairs(missionsDB) do
         local status = mission.completed and "🟢" or "⏳"
-        missSec:Button(status .. " " .. mission.name .. " ($" .. mission.cost .. ")", function()
-            if mission.completed then notify("✅ Misión ya completada") return end
-            startMission(mission)
-        end)
+        Tabs.Missions:AddButton({
+            Title = status .. " " .. mission.name .. " ($" .. mission.cost .. ")",
+            Callback = function()
+                if mission.completed then notify("✅ Misión ya completada") return end
+                startMission(mission)
+            end
+        })
     end
 end
 
-missSec:Button("🔄 Refrescar misiones", function()
-    refreshMissions()
-    notify("🔄 Lista actualizada")
-end)
+Tabs.Missions:AddButton({
+    Title = "🔄 Refrescar misiones",
+    Callback = function()
+        refreshMissions()
+        notify("🔄 Lista actualizada")
+    end
+})
 
--- ====== PESTAÑA 3: TELEPORTS ======
-local teleTab = win:Tab("📍 Teleports")
+-- TELEPORTS TAB
+Tabs.Teleports:AddParagraph({
+    Title = "🏪 TIENDAS",
+    Content = "Toca para ir a una tienda"
+})
 
--- Tiendas
-local shopSec = teleTab:Section("🏪 TIENDAS")
 for name, data in pairs(teleports.shops) do
-    shopSec:Button(name, function()
-        teleportToLocation(name)
-    end)
+    Tabs.Teleports:AddButton({
+        Title = name,
+        Callback = function()
+            teleportToLocation(name)
+        end
+    })
 end
 
--- Minas
-local mineSec = teleTab:Section("⛏️ MINAS")
+Tabs.Teleports:AddParagraph({
+    Title = "⛏️ MINAS",
+    Content = "Toca para ir a una mina"
+})
+
 for name, data in pairs(teleports.mines) do
-    mineSec:Button(name, function()
-        teleportToLocation(name)
-    end)
+    Tabs.Teleports:AddButton({
+        Title = name,
+        Callback = function()
+            teleportToLocation(name)
+        end
+    })
 end
 
--- Otros
-local miscSec = teleTab:Section("📍 OTROS LUGARES")
+Tabs.Teleports:AddParagraph({
+    Title = "📍 OTROS LUGARES",
+    Content = "Toca para ir a otros lugares"
+})
+
 for name, data in pairs(teleports.misc) do
-    miscSec:Button(name, function()
-        teleportToLocation(name)
-    end)
+    Tabs.Teleports:AddButton({
+        Title = name,
+        Callback = function()
+            teleportToLocation(name)
+        end
+    })
 end
 
--- Personalizados
-local customSec = teleTab:Section("📌 TELEPORTS PERSONALIZADOS")
+Tabs.Teleports:AddParagraph({
+    Title = "📌 TELEPORTS PERSONALIZADOS",
+    Content = "Guarda tus propias ubicaciones"
+})
 
 local function refreshCustomTeleports()
     for name, data in pairs(customTeleports) do
-        customSec:Button("📍 " .. name, function()
-            teleportToLocation(name)
-        end)
+        Tabs.Teleports:AddButton({
+            Title = "📍 " .. name,
+            Callback = function()
+                teleportToLocation(name)
+            end
+        })
     end
 end
 
-customSec:Input("Nombre del teleport", "Ej: Mi base", function(text)
-    teleName = text
-end)
+Tabs.Teleports:AddInput("TeleName", {
+    Title = "Nombre del teleport",
+    Placeholder = "Ej: Mi base",
+    Numeric = false,
+    Finished = false,
+    Callback = function(Text)
+        teleName = Text
+    end
+})
 
 local teleName = ""
-customSec:Button("💾 Guardar ubicación", function()
-    if teleName ~= "" then
-        saveCustomLocation(teleName)
-        teleName = ""
+
+Tabs.Teleports:AddButton({
+    Title = "💾 Guardar ubicación",
+    Callback = function()
+        if teleName ~= "" then
+            saveCustomLocation(teleName)
+            teleName = ""
+            refreshCustomTeleports()
+        else
+            notify("❌ Escribe un nombre primero")
+        end
+    end
+})
+
+Tabs.Teleports:AddButton({
+    Title = "🔄 Refrescar personalizados",
+    Callback = function()
         refreshCustomTeleports()
-    else
-        notify("❌ Escribe un nombre primero")
+        notify("🔄 Lista actualizada")
     end
-end)
+})
 
-customSec:Button("🔄 Refrescar personalizados", function()
-    refreshCustomTeleports()
-    notify("🔄 Lista actualizada")
-end)
+-- OTHERS TAB
+Tabs.Others:AddParagraph({
+    Title = "🦅 FLY",
+    Content = "Activa Fly y ajusta su velocidad"
+})
 
--- ====== PESTAÑA 4: OTHERS ======
-local othersTab = win:Tab("⚙️ Others")
-
-local flySec = othersTab:Section("🦅 FLY")
-flySec:Toggle("Fly", function(t)
-    toggleFly()
-end)
-
-flySec:Slider("🚀 Velocidad de Fly", 20, 100, 40, function(t)
-    flySpeed = t
-    notify("🚀 Velocidad: " .. t)
-end)
-
-local jumpSec = othersTab:Section("🦘 JUMP")
-jumpSec:Toggle("Infinite Jump", function(t)
-    toggleInfiniteJump()
-end)
-
-local timeSec = othersTab:Section("🕐 TIME")
-timeSec:Toggle("Time Display", function(t)
-    toggleTime()
-end)
-
-local antiSec = othersTab:Section("🛡️ ANTI")
-antiSec:Toggle("Anti-Staff", function(t)
-    toggleAntiStaff()
-end)
-antiSec:Toggle("Anti-AFK", function(t)
-    toggleAntiAFK()
-end)
-
--- ====== PESTAÑA 5: SETTINGS ======
-local settingsTab = win:Tab("⚙️ Settings")
-
-local infoSec = settingsTab:Section("📊 INFORMACIÓN")
-infoSec:Button("💰 Actualizar dinero", function()
-    local money = getPlayerMoney()
-    notify("💰 $" .. money)
-end)
-infoSec:Button("⛏️ Ver pico equipado", function()
-    local tier = getPlayerPickaxeTier()
-    notify("⛏️ Tier del pico: " .. tier)
-end)
-
-local logSec = settingsTab:Section("📜 LOGS")
-logSec:Button("Ver Logs de hoy", function()
-    local date = os.date("%Y-%m-%d")
-    local logFile = logsFolder .. "/log_" .. date .. ".txt"
-    if isfile(logFile) then
-        local content = readfile(logFile)
-        notify("📄 Logs: " .. content:sub(1, 250) .. "...")
-    else
-        notify("📄 No hay logs hoy")
+Tabs.Others:AddToggle("Fly", {
+    Title = "Fly",
+    Default = false,
+    Callback = function(Value)
+        toggleFly()
     end
-end)
+})
 
-local scriptSec = settingsTab:Section("🔄 SCRIPT")
-scriptSec:Button("Recargar script", function()
-    notify("🔄 Recargando...")
-    task.wait(1)
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/orvehack/Refinery-Caves-2-Script/main/Refinery-Caves-2-SCRIPT.lua"))()
-end)
+Tabs.Others:AddSlider("FlySpeed", {
+    Title = "🚀 Velocidad de Fly",
+    Default = 40,
+    Min = 20,
+    Max = 100,
+    Rounding = 5,
+    Callback = function(Value)
+        flySpeed = Value
+        notify("🚀 Velocidad: " .. Value)
+    end
+})
 
--- 21. BOTÓN FLOTANTE PROPIO (PARA ABRIR/CERRAR LA UI)
+Tabs.Others:AddParagraph({
+    Title = "🦘 INFINITE JUMP",
+    Content = "Activa saltos infinitos"
+})
+
+Tabs.Others:AddToggle("InfiniteJump", {
+    Title = "Infinite Jump",
+    Default = false,
+    Callback = function(Value)
+        toggleInfiniteJump()
+    end
+})
+
+Tabs.Others:AddParagraph({
+    Title = "🕐 TIME DISPLAY",
+    Content = "Muestra la hora del juego en pantalla"
+})
+
+Tabs.Others:AddToggle("TimeDisplay", {
+    Title = "Time Display",
+    Default = true,
+    Callback = function(Value)
+        toggleTime()
+    end
+})
+
+Tabs.Others:AddParagraph({
+    Title = "🛡️ ANTI",
+    Content = "Sistemas de protección"
+})
+
+Tabs.Others:AddToggle("AntiStaff", {
+    Title = "Anti-Staff",
+    Default = true,
+    Callback = function(Value)
+        toggleAntiStaff()
+    end
+})
+
+Tabs.Others:AddToggle("AntiAFK", {
+    Title = "Anti-AFK",
+    Default = true,
+    Callback = function(Value)
+        toggleAntiAFK()
+    end
+})
+
+-- SETTINGS TAB
+Tabs.Settings:AddParagraph({
+    Title = "📊 INFORMACIÓN",
+    Content = "Información del jugador"
+})
+
+Tabs.Settings:AddButton({
+    Title = "💰 Actualizar dinero",
+    Callback = function()
+        local money = getPlayerMoney()
+        notify("💰 $" .. money)
+    end
+})
+
+Tabs.Settings:AddButton({
+    Title = "⛏️ Ver pico equipado",
+    Callback = function()
+        local tier = getPlayerPickaxeTier()
+        notify("⛏️ Tier del pico: " .. tier)
+    end
+})
+
+Tabs.Settings:AddParagraph({
+    Title = "📜 LOGS",
+    Content = "Ver registros del script"
+})
+
+Tabs.Settings:AddButton({
+    Title = "Ver Logs de hoy",
+    Callback = function()
+        local date = os.date("%Y-%m-%d")
+        local logFile = logsFolder .. "/log_" .. date .. ".txt"
+        if isfile(logFile) then
+            local content = readfile(logFile)
+            notify("📄 Logs: " .. content:sub(1, 250) .. "...")
+        else
+            notify("📄 No hay logs hoy")
+        end
+    end
+})
+
+Tabs.Settings:AddParagraph({
+    Title = "🔄 SCRIPT",
+    Content = "Opciones del script"
+})
+
+Tabs.Settings:AddButton({
+    Title = "Recargar script",
+    Callback = function()
+        notify("🔄 Recargando...")
+        task.wait(1)
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/orvehack/Refinery-Caves-2-Script/main/Refinery-Caves-2-SCRIPT.lua"))()
+    end
+})
+
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+
+InterfaceManager:SetFolder("FluentScriptHub")
+SaveManager:SetFolder("FluentScriptHub/rc2")
+
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
+
+Window:SelectTab(1)
+
+SaveManager:LoadAutoloadConfig()
+
 local function createFloatingButton()
     local sg = Instance.new("ScreenGui", gethui())
     sg.Name = "FloatingBtn"
@@ -1045,7 +1217,6 @@ local function createFloatingButton()
     local corner = Instance.new("UICorner", btn)
     corner.CornerRadius = UDim.new(1, 0)
 
-    -- Arrastre
     local dragging = false
     local dragStart, startPos
     local inputService = game:GetService("UserInputService")
@@ -1071,28 +1242,17 @@ local function createFloatingButton()
         end
     end)
 
-    -- Abrir/cerrar UI de Team Skeet
-    local uiOpen = false
     btn.MouseButton1Click:Connect(function()
-        uiOpen = not uiOpen
-        win:Toggle() -- Team Skeet tiene Toggle()
-        notify(uiOpen and "📂 GUI abierta" or "📂 GUI cerrada", 2)
+        Window:Toggle()
     end)
 
     btn.TouchTap:Connect(function()
-        uiOpen = not uiOpen
-        win:Toggle()
-        notify(uiOpen and "📂 GUI abierta" or "📂 GUI cerrada", 2)
+        Window:Toggle()
     end)
 
     return sg
 end
 
--- 22. INICIALIZACIÓN
-notify("🚀 RC2 cargado correctamente", 4)
-writeLog("Script cargado correctamente")
 createFloatingButton()
 
-print("✅ RC2 cargado con Team Skeet")
-print("📁 Carpeta: " .. folder)
-print("🟢 Toca el botón flotante para abrir la GUI")
+writeLog("Script cargado correctamente")
