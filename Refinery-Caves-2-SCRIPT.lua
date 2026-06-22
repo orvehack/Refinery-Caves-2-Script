@@ -1,5 +1,5 @@
 -- ============================================================
-- RC2 SCRIPT (hecho con ia una parte de la ui y el antiafk)
+-- RC2 - VERSIÓN DEFINITIVA CON LUNA
 -- ============================================================
 
 -- 1. CARGAR LUNA
