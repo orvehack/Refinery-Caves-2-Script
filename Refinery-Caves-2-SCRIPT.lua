@@ -1,11 +1,11 @@
 -- ============================================================
--- RC2 - VERSIÓN DEFINITIVA CORREGIDA (CON WINDUI)
+-- RC2 - VERSIÓN COMPLETA CON SLIDERS HÍBRIDOS
 -- ============================================================
 
 -- 1. CARGAR WINDUI
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
 
--- 2. CONFIGURACIÓN
+-- 2. CONFIGURACIÓN Y LOGS
 local folder = "rc2_data"
 local logsFolder = folder .. "/logs"
 local teleportsFile = folder .. "/teleports.json"
@@ -26,7 +26,7 @@ local function writeLog(msg, isError)
         writefile(logFile, existing .. line)
     end)
 end
-writeLog("=== RC2 DEFINITIVO INICIADO ===")
+writeLog("=== RC2 COMPLETO INICIADO ===")
 
 -- 3. NOTIFICACIONES
 local function notify(text, duration)
@@ -39,7 +39,7 @@ local function notify(text, duration)
     writeLog(text)
 end
 
--- 4. BASE DE DATOS (CON PRECIOS)
+-- 4. BASE DE DATOS
 local oreDatabase = {
     ["Stone"] = { tier = 1, fragile = false, price = 3 },
     ["Iron"] = { tier = 1, fragile = false, price = 4 },
@@ -64,7 +64,7 @@ local treeDatabase = {
     ["Goldwood"] = { tier = 4, price = 80 },
 }
 
--- 5. MISIONES COMPLETAS (CON PASOS Y ACCIONES)
+-- 5. MISIONES CON PASOS COMPLETOS
 local missionsDB = {
     {
         id = "tool_reaper",
@@ -572,13 +572,25 @@ local function executeMissionStep(mission, stepIndex)
         teleportToLocation(step.target)
         task.wait(1)
     elseif step.action == "talk" then
-        -- Buscar NPC en workspace y simular conversación
-        local npc = workspace:FindFirstChild(step.npc)
+        -- Buscar NPC en workspace
+        local npc = nil
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") and obj.Name:find(step.npc) then
+                npc = obj
+                break
+            end
+        end
         if npc then
             notify("💬 Hablando con " .. step.npc)
-            task.wait(1)
+            -- Intentar interactuar con el NPC (simulado)
+            local humanoid = npc:FindFirstChild("Humanoid")
+            if humanoid then
+                -- Simular diálogo
+                task.wait(1)
+            end
         else
             notify("⚠️ NPC " .. step.npc .. " no encontrado, saltando paso")
+            task.wait(1)
         end
     elseif step.action == "mine" then
         notify("⛏️ Minando " .. step.amount .. " de " .. step.item)
@@ -907,7 +919,7 @@ end)
 setreadonly(getrawmetatable(game), true)
 writeLog("Anti-Ban/Kick activo")
 
--- 20. CREAR VENTANA WINDUI (CON ESTRUCTURA CORRECTA)
+-- 20. CREAR VENTANA WINDUI (CON TODAS LAS SECCIONES)
 local window = WindUI:CreateWindow({
     Title   = "RC2",
     Author  = "by orvexpp",
@@ -949,8 +961,9 @@ local window = WindUI:CreateWindow({
     },
 })
 
--- ====== FUNCIÓN PARA LIMPIAR Y RECREAR CONTENIDO DINÁMICO ======
+-- 21. FUNCIÓN PARA LIMPIAR CONTENEDORES (EVITA DUPLICACIÓN)
 local function clearContainer(container)
+    if not container then return end
     for _, child in pairs(container:GetChildren()) do
         if child:IsA("TextButton") or child:IsA("Frame") or child:IsA("ScrollingFrame") then
             child:Destroy()
@@ -978,7 +991,7 @@ farmTab:Toggle({
     end,
 })
 
--- Slider reemplazado por botones + y - (más fiables en móvil)
+-- Slider híbrido: muestra el valor y botones + y -
 farmTab:Paragraph({ Title = "⏱️ Tiempo para vender", Content = "70 segundos" })
 local timeLabel = farmTab:Paragraph({ Title = "", Content = "" })
 
@@ -986,8 +999,25 @@ local function updateTimeDisplay()
     local minutes = math.floor(autoFarmTimer / 60)
     local seconds = autoFarmTimer % 60
     local text = minutes > 0 and minutes .. "m " .. seconds .. "s" or seconds .. "s"
-    timeLabel.Content = text
+    timeLabel.Content = "Valor actual: " .. text
 end
+
+-- Botones para ajustar el tiempo
+farmTab:Button({
+    Title = "- 1s",
+    Callback = function()
+        autoFarmTimer = math.max(10, autoFarmTimer - 1)
+        updateTimeDisplay()
+    end,
+})
+
+farmTab:Button({
+    Title = "+ 1s",
+    Callback = function()
+        autoFarmTimer = math.min(260, autoFarmTimer + 1)
+        updateTimeDisplay()
+    end,
+})
 
 farmTab:Button({
     Title = "- 5s",
@@ -1259,19 +1289,19 @@ othersTab:Toggle({
     end,
 })
 
-othersTab:Button({
-    Title = "🚀 Velocidad: " .. flySpeed,
-    Callback = function()
-        -- No hacemos nada, solo mostramos la velocidad actual
-    end,
-})
+-- Slider híbrido para velocidad de fly
+othersTab:Paragraph({ Title = "🚀 Velocidad de Fly", Content = "40" })
+local flySpeedLabel = othersTab:Paragraph({ Title = "", Content = "" })
 
--- Botones + y - para velocidad
+local function updateFlySpeedDisplay()
+    flySpeedLabel.Content = "Velocidad actual: " .. flySpeed
+end
+
 othersTab:Button({
     Title = "- 5",
     Callback = function()
         flySpeed = math.max(20, flySpeed - 5)
-        othersTab:Button({ Title = "🚀 Velocidad: " .. flySpeed })
+        updateFlySpeedDisplay()
         notify("🚀 Velocidad: " .. flySpeed)
     end,
 })
@@ -1280,10 +1310,11 @@ othersTab:Button({
     Title = "+ 5",
     Callback = function()
         flySpeed = math.min(100, flySpeed + 5)
-        othersTab:Button({ Title = "🚀 Velocidad: " .. flySpeed })
+        updateFlySpeedDisplay()
         notify("🚀 Velocidad: " .. flySpeed)
     end,
 })
+updateFlySpeedDisplay()
 
 othersTab:Toggle({
     Title = "🦘 Infinite Jump",
@@ -1359,7 +1390,7 @@ settingsTab:Button({
     end,
 })
 
--- 21. BOTÓN FLOTANTE MOVIBLE (SIEMPRE)
+-- 22. BOTÓN FLOTANTE MOVIBLE (SIEMPRE)
 local function makeFloatingButtonMovable()
     local openButton = window.OpenButton
     if openButton then
@@ -1390,7 +1421,7 @@ local function makeFloatingButtonMovable()
     end
 end
 
--- 22. INICIALIZACIÓN
+-- 23. INICIALIZACIÓN
 notify("🚀 RC2 DEFINITIVO cargado correctamente", 4)
 writeLog("Script cargado correctamente")
 
