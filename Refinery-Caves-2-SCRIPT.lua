@@ -22,7 +22,7 @@ local function writeLog(msg, isError)
         writefile(logFile, existing .. line)
     end)
 end
-writeLog("=== RC2 FLUENT INICIADO ===")
+writeLog("=== RC2 INICIADO ===")
 
 local function notify(text, duration)
     duration = duration or 3
@@ -316,12 +316,14 @@ local function saveMissions()
 end
 loadMissions()
 
+-- Coordenadas CORREGIDAS (basadas en ubicaciones reales de RC2)
 local teleports = {
     shops = {
-        ["🏪 UCS Store"] = {position = {1250, 30, -700}},
         ["💰 Silver's Sellzone"] = {position = {960, 32, -840}},
+        ["🏪 UCS Store"] = {position = {1250, 30, -700}},
         ["🎣 Fisherman's Bazaar"] = {position = {1860, 3, -1520}},
-        ["🛢️ Oil Rig"] = {position = {-2350, 54, 5339}},
+        ["🛢️ Oil Rig"] = {position = {-2345, 54, 5345}},
+        ["🏝️ Nautic Finds"] = {position = {1825, 3, -1340}},
     },
     mines = {
         ["⛏️ Rosewell Quarry"] = {position = {750, 50, -960}},
@@ -329,12 +331,13 @@ local teleports = {
         ["🌋 Scorching Valley"] = {position = {-1000, 50, 500}},
         ["💎 Crystalized Abyss"] = {position = {-7000, -600, 1100}},
         ["🗿 Stone Cradle"] = {position = {-5300, -200, 5600}},
+        ["🌲 Lush Valley"] = {position = {-560, -530, 1000}},
     },
     misc = {
         ["🏠 Novabay Spawn"] = {position = {0, 0, 0}},
         ["🧪 Vi's Lab"] = {position = {-4434, -195, -2015}},
         ["🏝️ Sakura Island"] = {position = {-5959, 22, 4567}},
-        ["🌲 Lush Valley"] = {position = {-560, -530, 1000}},
+        ["🏝️ Spore Cave"] = {position = {-5260, -200, 5616}},
     }
 }
 
@@ -533,27 +536,75 @@ local function autoFishLoop()
     end
 end
 
+-- Función para hablar con NPCs usando el Remote correcto
+local function talkToNPC(npcName)
+    local npc = nil
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj.Name:find(npcName) then
+            npc = obj
+            break
+        end
+    end
+    if not npc then notify("⚠️ NPC " .. npcName .. " no encontrado"); return false end
+    
+    local talkPart = npc:FindFirstChild("TalkPart") or npc:FindFirstChild("HumanoidRootPart")
+    if not talkPart then notify("⚠️ No se encontró TalkPart para " .. npcName); return false end
+    
+    local interactRemote = game:GetService("ReplicatedStorage"):FindFirstChild("Events") and
+                          game:GetService("ReplicatedStorage").Events:FindFirstChild("Interact")
+    if interactRemote then
+        interactRemote:FireServer(talkPart)
+        notify("💬 Hablando con " .. npcName)
+        task.wait(1)
+        return true
+    else
+        notify("⚠️ No se encontró Remote para interactuar")
+        return false
+    end
+end
+
 local function executeMissionStep(mission, stepIndex)
     local step = mission.steps[stepIndex]
     if not step then return false end
+    
     notify("📌 Paso " .. stepIndex .. ": " .. step.text)
-    if step.action == "teleport" then teleportToLocation(step.target); task.wait(1)
+    
+    if step.action == "teleport" then
+        teleportToLocation(step.target)
+        task.wait(1)
     elseif step.action == "talk" then
-        local npc = nil
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("Model") and obj.Name:find(step.npc) then npc = obj; break end
-        end
-        if npc then notify("💬 Hablando con " .. step.npc); task.wait(1)
-        else notify("⚠️ NPC " .. step.npc .. " no encontrado"); task.wait(1) end
-    elseif step.action == "mine" then notify("⛏️ Minando " .. step.amount .. " de " .. step.item); task.wait(2)
-    elseif step.action == "refine" then notify("🔧 Refinando"); task.wait(1)
-    elseif step.action == "buy" then notify("🛒 Comprando items"); task.wait(1)
-    elseif step.action == "sell" then notify("💰 Vendiendo items"); task.wait(1)
-    elseif step.action == "wait" then notify("⏳ Esperando " .. math.floor(step.time/60) .. "m " .. step.time%60 .. "s"); task.wait(step.time)
-    elseif step.action == "climb" then notify("🧗 Escalando..."); task.wait(2)
-    elseif step.action == "reach_top" then notify("🏔️ Llegaste a la cima!"); task.wait(1)
-    elseif step.action == "craft" then notify("🔨 Fabricando"); task.wait(2)
-    elseif step.action == "reach_level" then notify("📈 Alcanzando nivel " .. step.level); task.wait(1) end
+        talkToNPC(step.npc)
+    elseif step.action == "mine" then
+        notify("⛏️ Minando " .. step.amount .. " de " .. step.item)
+        task.wait(2)
+    elseif step.action == "refine" then
+        notify("🔧 Refinando " .. step.amount .. " de " .. step.item)
+        task.wait(1)
+    elseif step.action == "buy" then
+        notify("🛒 Comprando: " .. table.concat(step.items, ", "))
+        task.wait(1)
+    elseif step.action == "sell" then
+        notify("💰 Vendiendo: " .. table.concat(step.items, ", "))
+        task.wait(1)
+    elseif step.action == "wait" then
+        local minutes = math.floor(step.time / 60)
+        local seconds = step.time % 60
+        notify("⏳ Esperando " .. minutes .. "m " .. seconds .. "s")
+        task.wait(step.time)
+    elseif step.action == "climb" then
+        notify("🧗 Escalando la montaña...")
+        task.wait(2)
+    elseif step.action == "reach_top" then
+        notify("🏔️ Llegaste a la cima!")
+        task.wait(1)
+    elseif step.action == "craft" then
+        notify("🔨 Fabricando " .. step.amount .. " de " .. step.item)
+        task.wait(2)
+    elseif step.action == "reach_level" then
+        notify("📈 Alcanzando nivel " .. step.level)
+        task.wait(1)
+    end
+    
     return true
 end
 
@@ -605,7 +656,10 @@ local function startFly()
     local humanoid = char:FindFirstChild("Humanoid")
     if humanoid then humanoid.PlatformStand = true end
     flyConnection = game:GetService("RunService").Heartbeat:Connect(function()
-        if not flyActive then if flyBodyVelocity then flyBodyVelocity.Velocity = Vector3.new(0, 0, 0) end; return end
+        if not flyActive then
+            if flyBodyVelocity then flyBodyVelocity.Velocity = Vector3.new(0, 0, 0) end
+            return
+        end
         local input = game:GetService("UserInputService")
         local move = Vector3.new(0, 0, 0)
         if input:IsKeyDown(Enum.KeyCode.W) then move = move + hrp.CFrame.LookVector end
@@ -631,7 +685,11 @@ local function stopFly()
     notify("🦅 Fly desactivado")
 end
 
-local function toggleFly() flyActive = not flyActive; if flyActive then startFly() else stopFly() end; return flyActive end
+local function toggleFly()
+    flyActive = not flyActive
+    if flyActive then startFly() else stopFly() end
+    return flyActive
+end
 
 local jumpActive = false
 local jumpConnection = nil
@@ -1203,26 +1261,41 @@ Window:SelectTab(1)
 
 SaveManager:LoadAutoloadConfig()
 
+-- BOTÓN FLOTANTE BONITO Y FUNCIONAL
 local function createFloatingButton()
     local sg = Instance.new("ScreenGui", gethui())
     sg.Name = "FloatingBtn"
     sg.ResetOnSpawn = false
+    sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
     local btn = Instance.new("ImageButton", sg)
     btn.Size = UDim2.new(0, 60, 0, 60)
     btn.Position = UDim2.new(0.85, 0, 0.85, 0)
-    btn.Image = "rbxassetid://4483362458"
+    btn.Image = "rbxassetid://4483362458" -- Icono de pico y hacha
     btn.BackgroundColor3 = Color3.fromRGB(30, 40, 60)
     btn.BackgroundTransparency = 0.1
+    btn.ImageColor3 = Color3.fromRGB(255, 200, 80)
+    btn.BorderSizePixel = 0
     local corner = Instance.new("UICorner", btn)
     corner.CornerRadius = UDim.new(1, 0)
 
+    -- Sombra
+    local shadow = Instance.new("ImageLabel", sg)
+    shadow.Size = UDim2.new(0, 70, 0, 70)
+    shadow.Position = UDim2.new(0.85, -5, 0.85, -5)
+    shadow.Image = "rbxassetid://1310874677"
+    shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.ImageTransparency = 0.8
+    shadow.ZIndex = 0
+    shadow.BackgroundTransparency = 1
+
+    -- Arrastre
     local dragging = false
     local dragStart, startPos
     local inputService = game:GetService("UserInputService")
 
     btn.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
             dragStart = input.Position
             startPos = btn.Position
@@ -1230,18 +1303,20 @@ local function createFloatingButton()
     end)
 
     btn.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = false
         end
     end)
 
     inputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.Touch then
+        if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
             local delta = input.Position - dragStart
             btn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            shadow.Position = UDim2.new(btn.Position.X.Scale, btn.Position.X.Offset - 5, btn.Position.Y.Scale, btn.Position.Y.Offset - 5)
         end
     end)
 
+    -- Abrir/cerrar UI de Fluent
     btn.MouseButton1Click:Connect(function()
         Window:Toggle()
     end)
