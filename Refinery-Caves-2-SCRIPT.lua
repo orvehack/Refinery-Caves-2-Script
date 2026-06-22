@@ -1,11 +1,8 @@
 -- ============================================================
--- RC2 - VERSIÓN COMPLETA CON SLIDERS HÍBRIDOS
+-- RC2 - VERSIÓN FINAL CON UI NATIVA (100% FUNCIONAL EN DELTA)
 -- ============================================================
 
--- 1. CARGAR WINDUI
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
-
--- 2. CONFIGURACIÓN Y LOGS
+-- 1. CONFIGURACIÓN Y LOGS
 local folder = "rc2_data"
 local logsFolder = folder .. "/logs"
 local teleportsFile = folder .. "/teleports.json"
@@ -26,20 +23,36 @@ local function writeLog(msg, isError)
         writefile(logFile, existing .. line)
     end)
 end
-writeLog("=== RC2 COMPLETO INICIADO ===")
+writeLog("=== RC2 INICIADO ===")
 
--- 3. NOTIFICACIONES
+-- 2. NOTIFICACIONES (UI NATIVA)
 local function notify(text, duration)
     duration = duration or 3
-    WindUI:Notify({
-        Title = "⚒️ RC2",
-        Content = text,
-        Duration = duration,
-    })
+    local sg = Instance.new("ScreenGui", gethui())
+    sg.Name = "Notify"
+    sg.ResetOnSpawn = false
+    local frame = Instance.new("Frame", sg)
+    frame.Size = UDim2.new(0.8, 0, 0, 50)
+    frame.Position = UDim2.new(0.1, 0, 0.82, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(20, 25, 40)
+    frame.BackgroundTransparency = 0.1
+    local corner = Instance.new("UICorner", frame)
+    corner.CornerRadius = UDim.new(0, 12)
+    local label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.BackgroundTransparency = 1
+    task.spawn(function()
+        task.wait(duration)
+        sg:Destroy()
+    end)
     writeLog(text)
 end
 
--- 4. BASE DE DATOS
+-- 3. BASE DE DATOS
 local oreDatabase = {
     ["Stone"] = { tier = 1, fragile = false, price = 3 },
     ["Iron"] = { tier = 1, fragile = false, price = 4 },
@@ -64,237 +77,107 @@ local treeDatabase = {
     ["Goldwood"] = { tier = 4, price = 80 },
 }
 
--- 5. MISIONES CON PASOS COMPLETOS
+-- 4. MISIONES
 local missionsDB = {
-    {
-        id = "tool_reaper",
-        name = "Tool Reaper",
-        npc = "Maroon",
-        location = "Silver's Sellzone",
-        cost = 0,
-        steps = {
-            { action = "teleport", target = "💰 Silver's Sellzone", text = "Ve a Silver's Sellzone" },
-            { action = "talk", npc = "Maroon", text = "Habla con Maroon" },
-            { action = "teleport", target = "🧪 Vi's Lab", text = "Ve al laboratorio de Violet" },
-            { action = "talk", npc = "Violet", text = "Entrega la Relic a Violet" },
-            { action = "teleport", target = "💰 Silver's Sellzone", text = "Vuelve con Maroon" },
-            { action = "talk", npc = "Maroon", text = "Habla con Maroon para completar" },
-        },
-        reward = "Tool Reaper",
-        completed = false,
-        progress = 0
-    },
-    {
-        id = "golden_ticket",
-        name = "Golden Ticket",
-        npc = "Silver",
-        location = "Silver's Sellzone",
-        cost = 0,
-        steps = {
-            { action = "teleport", target = "💰 Silver's Sellzone", text = "Ve a Silver's Sellzone" },
-            { action = "talk", npc = "Silver", text = "Habla con Silver" },
-            { action = "sell", items = {"Gold", "Crystal Fish", "Silverwood"}, text = "Vende los items" },
-        },
-        reward = "Golden Ticket",
-        completed = false,
-        progress = 0
-    },
-    {
-        id = "parkourist",
-        name = "Parkourist",
-        npc = "Mountain Eve",
-        location = "Vi's Logics",
-        cost = 0,
-        steps = {
-            { action = "teleport", target = "🧪 Vi's Lab", text = "Ve a Vi's Logics" },
-            { action = "climb", text = "Escala la montaña" },
-            { action = "reach_top", text = "Llega a la cima" },
-        },
-        reward = "Parkourist",
-        completed = false,
-        progress = 0
-    },
-    {
-        id = "start_on_oil",
-        name = "Start On Oil",
-        npc = "Mike",
-        location = "Oil Rig",
-        cost = 0,
-        steps = {
-            { action = "teleport", target = "🛢️ Oil Rig", text = "Ve a la Oil Rig" },
-            { action = "talk", npc = "Mike", text = "Habla con Mike" },
-            { action = "talk", npc = "Steven", text = "Habla con Steven" },
-            { action = "talk", npc = "Spyke", text = "Habla con Spyke" },
-            { action = "talk", npc = "Emmanuel", text = "Habla con Emmanuel" },
-            { action = "talk", npc = "Abe", text = "Habla con Abe" },
-            { action = "talk", npc = "Doris", text = "Habla con Doris" },
-        },
-        reward = "Acceso Oil Rig",
-        completed = false,
-        progress = 0
-    },
-    {
-        id = "industrializing_oil",
-        name = "Industrializing Oil",
-        npc = "Steven",
-        location = "Oil Rig",
-        cost = 0,
-        steps = {
-            { action = "teleport", target = "🛢️ Oil Rig", text = "Ve a la Oil Rig" },
-            { action = "talk", npc = "Steven", text = "Habla con Steven" },
-            { action = "mine", item = "Coal", amount = 200, text = "Minera 200 de Carbon" },
-            { action = "teleport", target = "🛢️ Oil Rig", text = "Vuelve a la Oil Rig" },
-            { action = "talk", npc = "Steven", text = "Entrega el Carbon" },
-        },
-        reward = "Industrial Drill",
-        completed = false,
-        progress = 0
-    },
-    {
-        id = "crafter",
-        name = "Crafter",
-        npc = "Spyke",
-        location = "Oil Rig",
-        cost = 0,
-        steps = {
-            { action = "teleport", target = "🛢️ Oil Rig", text = "Ve a la Oil Rig" },
-            { action = "talk", npc = "Spyke", text = "Habla con Spyke" },
-            { action = "craft", item = "Iron", amount = 10, text = "Fabrica 10 de Hierro" },
-        },
-        reward = "Fabricación",
-        completed = false,
-        progress = 0
-    },
-    {
-        id = "unlock_limits",
-        name = "Unlock the Limits",
-        npc = "Emmanuel",
-        location = "Oil Rig",
-        cost = 0,
-        steps = {
-            { action = "teleport", target = "🛢️ Oil Rig", text = "Ve a la Oil Rig" },
-            { action = "talk", npc = "Emmanuel", text = "Habla con Emmanuel" },
-            { action = "reach_level", level = 10, text = "Alcanza el nivel 10" },
-        },
-        reward = "Límites aumentados",
-        completed = false,
-        progress = 0
-    },
-    {
-        id = "proton_phase1",
-        name = "Proton-24 (Fase 1)",
-        npc = "Violet",
-        location = "Vi's Lab",
-        cost = 100,
-        steps = {
-            { action = "teleport", target = "🧪 Vi's Lab", text = "Ve al laboratorio de Violet" },
-            { action = "talk", npc = "Violet", text = "Habla con Violet" },
-            { action = "mine", item = "Iron", amount = 3, text = "Minera 3 de Hierro" },
-            { action = "refine", item = "RefinedIron", amount = 3, text = "Refina el Hierro" },
-            { action = "teleport", target = "🧪 Vi's Lab", text = "Vuelve al laboratorio" },
-            { action = "talk", npc = "Violet", text = "Entrega el Hierro Refinado" },
-            { action = "wait", time = 240, text = "Espera 4 minutos" },
-        },
-        reward = "Proton-24 F1",
-        completed = false,
-        progress = 0
-    },
-    {
-        id = "proton_phase2",
-        name = "Proton-24 (Fase 2)",
-        npc = "Violet",
-        location = "Vi's Lab",
-        cost = 500,
-        steps = {
-            { action = "teleport", target = "🧪 Vi's Lab", text = "Ve al laboratorio de Violet" },
-            { action = "talk", npc = "Violet", text = "Habla con Violet" },
-            { action = "mine", item = "Copper", amount = 1, text = "Minera 1 de Cobre" },
-            { action = "refine", item = "RefinedCopper", amount = 1, text = "Refina el Cobre" },
-            { action = "buy", items = {"NOTGate", "XORGate", "ANDGate"}, text = "Compra las compuertas" },
-            { action = "teleport", target = "🧪 Vi's Lab", text = "Vuelve al laboratorio" },
-            { action = "talk", npc = "Violet", text = "Entrega los items" },
-            { action = "wait", time = 120, text = "Espera 2 minutos" },
-        },
-        reward = "Proton-24 F2",
-        completed = false,
-        progress = 0
-    },
-    {
-        id = "proton_phase3",
-        name = "Proton-24 (Fase 3)",
-        npc = "Violet",
-        location = "Vi's Lab",
-        cost = 200,
-        steps = {
-            { action = "teleport", target = "🧪 Vi's Lab", text = "Ve al laboratorio de Violet" },
-            { action = "talk", npc = "Violet", text = "Habla con Violet" },
-            { action = "mine", item = "Voltshard", amount = 3, text = "Minera 3 Voltshard (cuidado! 60%)" },
-            { action = "teleport", target = "🧪 Vi's Lab", text = "Vuelve al laboratorio" },
-            { action = "talk", npc = "Violet", text = "Entrega los Voltshard" },
-            { action = "wait", time = 360, text = "Espera 6 minutos" },
-        },
-        reward = "Proton-24 COMPLETO",
-        completed = false,
-        progress = 0
-    },
-    {
-        id = "hookling_phase1",
-        name = "Hookling-8 (Fase 1)",
-        npc = "Violet",
-        location = "Vi's Lab",
-        cost = 100,
-        steps = {
-            { action = "teleport", target = "🧪 Vi's Lab", text = "Ve al laboratorio de Violet" },
-            { action = "talk", npc = "Violet", text = "Habla con Violet" },
-            { action = "mine", item = "Iron", amount = 3, text = "Minera 3 de Hierro" },
-            { action = "refine", item = "RefinedIron", amount = 3, text = "Refina el Hierro" },
-            { action = "teleport", target = "🧪 Vi's Lab", text = "Vuelve al laboratorio" },
-            { action = "talk", npc = "Violet", text = "Entrega el Hierro Refinado" },
-            { action = "wait", time = 120, text = "Espera 2 minutos" },
-        },
-        reward = "Hookling-8 F1",
-        completed = false,
-        progress = 0
-    },
-    {
-        id = "hookling_phase2",
-        name = "Hookling-8 (Fase 2)",
-        npc = "Violet",
-        location = "Vi's Lab",
-        cost = 1500,
-        steps = {
-            { action = "teleport", target = "🧪 Vi's Lab", text = "Ve al laboratorio de Violet" },
-            { action = "talk", npc = "Violet", text = "Habla con Violet" },
-            { action = "mine", item = "Copper", amount = 6, text = "Minera 6 de Cobre" },
-            { action = "refine", item = "RefinedCopper", amount = 6, text = "Refina el Cobre" },
-            { action = "buy", items = {"ANDGate", "ANDGate", "XORGate", "XORGate", "MemoryStorage"}, text = "Compra los items" },
-            { action = "teleport", target = "🧪 Vi's Lab", text = "Vuelve al laboratorio" },
-            { action = "talk", npc = "Violet", text = "Entrega los items" },
-            { action = "wait", time = 240, text = "Espera 4 minutos" },
-        },
-        reward = "Hookling-8 F2",
-        completed = false,
-        progress = 0
-    },
-    {
-        id = "hookling_phase3",
-        name = "Hookling-8 (Fase 3)",
-        npc = "Violet",
-        location = "Vi's Lab",
-        cost = 300,
-        steps = {
-            { action = "teleport", target = "🧪 Vi's Lab", text = "Ve al laboratorio de Violet" },
-            { action = "talk", npc = "Violet", text = "Habla con Violet" },
-            { action = "mine", item = "Blastshard", amount = 3, text = "Minera 3 Blastshard (cuidado! 60%)" },
-            { action = "mine", item = "Obsidian", amount = 3, text = "Minera 3 Obsidiana" },
-            { action = "teleport", target = "🧪 Vi's Lab", text = "Vuelve al laboratorio" },
-            { action = "talk", npc = "Violet", text = "Entrega los items" },
-            { action = "wait", time = 360, text = "Espera 6 minutos" },
-        },
-        reward = "Hookling-8 COMPLETO",
-        completed = false,
-        progress = 0
-    },
+    {id = "tool_reaper", name = "Tool Reaper", npc = "Maroon", location = "Silver's Sellzone", cost = 0, steps = {
+        { action = "teleport", target = "💰 Silver's Sellzone", text = "Ve a Silver's Sellzone" },
+        { action = "talk", npc = "Maroon", text = "Habla con Maroon" },
+        { action = "teleport", target = "🧪 Vi's Lab", text = "Ve al laboratorio" },
+        { action = "talk", npc = "Violet", text = "Entrega la Relic a Violet" },
+        { action = "teleport", target = "💰 Silver's Sellzone", text = "Vuelve con Maroon" },
+        { action = "talk", npc = "Maroon", text = "Completa la misión" },
+    }, reward = "Tool Reaper", completed = false, progress = 0},
+    {id = "golden_ticket", name = "Golden Ticket", npc = "Silver", location = "Silver's Sellzone", cost = 0, steps = {
+        { action = "teleport", target = "💰 Silver's Sellzone", text = "Ve a Silver's Sellzone" },
+        { action = "talk", npc = "Silver", text = "Habla con Silver" },
+        { action = "sell", items = {"Gold", "Crystal Fish", "Silverwood"}, text = "Vende los items" },
+    }, reward = "Golden Ticket", completed = false, progress = 0},
+    {id = "parkourist", name = "Parkourist", npc = "Mountain Eve", location = "Vi's Logics", cost = 0, steps = {
+        { action = "teleport", target = "🧪 Vi's Lab", text = "Ve a Vi's Logics" },
+        { action = "climb", text = "Escala la montaña" },
+        { action = "reach_top", text = "Llega a la cima" },
+    }, reward = "Parkourist", completed = false, progress = 0},
+    {id = "start_on_oil", name = "Start On Oil", npc = "Mike", location = "Oil Rig", cost = 0, steps = {
+        { action = "teleport", target = "🛢️ Oil Rig", text = "Ve a la Oil Rig" },
+        { action = "talk", npc = "Mike", text = "Habla con Mike" },
+        { action = "talk", npc = "Steven", text = "Habla con Steven" },
+        { action = "talk", npc = "Spyke", text = "Habla con Spyke" },
+        { action = "talk", npc = "Emmanuel", text = "Habla con Emmanuel" },
+        { action = "talk", npc = "Abe", text = "Habla con Abe" },
+        { action = "talk", npc = "Doris", text = "Habla con Doris" },
+    }, reward = "Acceso Oil Rig", completed = false, progress = 0},
+    {id = "industrializing_oil", name = "Industrializing Oil", npc = "Steven", location = "Oil Rig", cost = 0, steps = {
+        { action = "teleport", target = "🛢️ Oil Rig", text = "Ve a la Oil Rig" },
+        { action = "talk", npc = "Steven", text = "Habla con Steven" },
+        { action = "mine", item = "Coal", amount = 200, text = "Minera 200 de Carbon" },
+        { action = "teleport", target = "🛢️ Oil Rig", text = "Vuelve a la Oil Rig" },
+        { action = "talk", npc = "Steven", text = "Entrega el Carbon" },
+    }, reward = "Industrial Drill", completed = false, progress = 0},
+    {id = "crafter", name = "Crafter", npc = "Spyke", location = "Oil Rig", cost = 0, steps = {
+        { action = "teleport", target = "🛢️ Oil Rig", text = "Ve a la Oil Rig" },
+        { action = "talk", npc = "Spyke", text = "Habla con Spyke" },
+        { action = "craft", item = "Iron", amount = 10, text = "Fabrica 10 de Hierro" },
+    }, reward = "Fabricación", completed = false, progress = 0},
+    {id = "unlock_limits", name = "Unlock the Limits", npc = "Emmanuel", location = "Oil Rig", cost = 0, steps = {
+        { action = "teleport", target = "🛢️ Oil Rig", text = "Ve a la Oil Rig" },
+        { action = "talk", npc = "Emmanuel", text = "Habla con Emmanuel" },
+        { action = "reach_level", level = 10, text = "Alcanza el nivel 10" },
+    }, reward = "Límites aumentados", completed = false, progress = 0},
+    {id = "proton_phase1", name = "Proton-24 (Fase 1)", npc = "Violet", location = "Vi's Lab", cost = 100, steps = {
+        { action = "teleport", target = "🧪 Vi's Lab", text = "Ve al laboratorio" },
+        { action = "talk", npc = "Violet", text = "Habla con Violet" },
+        { action = "mine", item = "Iron", amount = 3, text = "Minera 3 de Hierro" },
+        { action = "refine", item = "RefinedIron", amount = 3, text = "Refina el Hierro" },
+        { action = "teleport", target = "🧪 Vi's Lab", text = "Vuelve al laboratorio" },
+        { action = "talk", npc = "Violet", text = "Entrega el Hierro Refinado" },
+        { action = "wait", time = 240, text = "Espera 4 minutos" },
+    }, reward = "Proton-24 F1", completed = false, progress = 0},
+    {id = "proton_phase2", name = "Proton-24 (Fase 2)", npc = "Violet", location = "Vi's Lab", cost = 500, steps = {
+        { action = "teleport", target = "🧪 Vi's Lab", text = "Ve al laboratorio" },
+        { action = "talk", npc = "Violet", text = "Habla con Violet" },
+        { action = "mine", item = "Copper", amount = 1, text = "Minera 1 de Cobre" },
+        { action = "refine", item = "RefinedCopper", amount = 1, text = "Refina el Cobre" },
+        { action = "buy", items = {"NOTGate", "XORGate", "ANDGate"}, text = "Compra las compuertas" },
+        { action = "teleport", target = "🧪 Vi's Lab", text = "Vuelve al laboratorio" },
+        { action = "talk", npc = "Violet", text = "Entrega los items" },
+        { action = "wait", time = 120, text = "Espera 2 minutos" },
+    }, reward = "Proton-24 F2", completed = false, progress = 0},
+    {id = "proton_phase3", name = "Proton-24 (Fase 3)", npc = "Violet", location = "Vi's Lab", cost = 200, steps = {
+        { action = "teleport", target = "🧪 Vi's Lab", text = "Ve al laboratorio" },
+        { action = "talk", npc = "Violet", text = "Habla con Violet" },
+        { action = "mine", item = "Voltshard", amount = 3, text = "Minera 3 Voltshard (60%)" },
+        { action = "teleport", target = "🧪 Vi's Lab", text = "Vuelve al laboratorio" },
+        { action = "talk", npc = "Violet", text = "Entrega los Voltshard" },
+        { action = "wait", time = 360, text = "Espera 6 minutos" },
+    }, reward = "Proton-24 COMPLETO", completed = false, progress = 0},
+    {id = "hookling_phase1", name = "Hookling-8 (Fase 1)", npc = "Violet", location = "Vi's Lab", cost = 100, steps = {
+        { action = "teleport", target = "🧪 Vi's Lab", text = "Ve al laboratorio" },
+        { action = "talk", npc = "Violet", text = "Habla con Violet" },
+        { action = "mine", item = "Iron", amount = 3, text = "Minera 3 de Hierro" },
+        { action = "refine", item = "RefinedIron", amount = 3, text = "Refina el Hierro" },
+        { action = "teleport", target = "🧪 Vi's Lab", text = "Vuelve al laboratorio" },
+        { action = "talk", npc = "Violet", text = "Entrega el Hierro Refinado" },
+        { action = "wait", time = 120, text = "Espera 2 minutos" },
+    }, reward = "Hookling-8 F1", completed = false, progress = 0},
+    {id = "hookling_phase2", name = "Hookling-8 (Fase 2)", npc = "Violet", location = "Vi's Lab", cost = 1500, steps = {
+        { action = "teleport", target = "🧪 Vi's Lab", text = "Ve al laboratorio" },
+        { action = "talk", npc = "Violet", text = "Habla con Violet" },
+        { action = "mine", item = "Copper", amount = 6, text = "Minera 6 de Cobre" },
+        { action = "refine", item = "RefinedCopper", amount = 6, text = "Refina el Cobre" },
+        { action = "buy", items = {"ANDGate", "ANDGate", "XORGate", "XORGate", "MemoryStorage"}, text = "Compra los items" },
+        { action = "teleport", target = "🧪 Vi's Lab", text = "Vuelve al laboratorio" },
+        { action = "talk", npc = "Violet", text = "Entrega los items" },
+        { action = "wait", time = 240, text = "Espera 4 minutos" },
+    }, reward = "Hookling-8 F2", completed = false, progress = 0},
+    {id = "hookling_phase3", name = "Hookling-8 (Fase 3)", npc = "Violet", location = "Vi's Lab", cost = 300, steps = {
+        { action = "teleport", target = "🧪 Vi's Lab", text = "Ve al laboratorio" },
+        { action = "talk", npc = "Violet", text = "Habla con Violet" },
+        { action = "mine", item = "Blastshard", amount = 3, text = "Minera 3 Blastshard (60%)" },
+        { action = "mine", item = "Obsidian", amount = 3, text = "Minera 3 Obsidiana" },
+        { action = "teleport", target = "🧪 Vi's Lab", text = "Vuelve al laboratorio" },
+        { action = "talk", npc = "Violet", text = "Entrega los items" },
+        { action = "wait", time = 360, text = "Espera 6 minutos" },
+    }, reward = "Hookling-8 COMPLETO", completed = false, progress = 0},
 }
 
 -- Cargar misiones
@@ -313,7 +196,6 @@ local function loadMissions()
         end
     end
 end
-
 local function saveMissions()
     local data = {}
     for _, mission in ipairs(missionsDB) do
@@ -324,7 +206,7 @@ local function saveMissions()
 end
 loadMissions()
 
--- 6. TELEPORTS (DIVIDIDOS EN SECCIONES)
+-- 5. TELEPORTS
 local teleports = {
     shops = {
         ["🏪 UCS Store"] = {position = {1250, 30, -700}},
@@ -346,7 +228,6 @@ local teleports = {
         ["🌲 Lush Valley"] = {position = {-560, -530, 1000}},
     }
 }
-
 local customTeleports = {}
 
 local function loadCustomTeleports()
@@ -359,14 +240,13 @@ local function loadCustomTeleports()
         end
     end
 end
-
 local function saveCustomTeleports()
     local json = game:GetService("HttpService"):JSONEncode(customTeleports)
     writefile(teleportsFile, json)
 end
 loadCustomTeleports()
 
--- 7. FUNCIONES DE JUGADOR
+-- 6. FUNCIONES DE JUGADOR
 local function getPlayerMoney()
     local player = game:GetService("Players").LocalPlayer
     local stats = player:FindFirstChild("leaderstats")
@@ -405,7 +285,7 @@ local function getPlayerFishingRod()
     return false
 end
 
--- 8. DETECCIÓN DE RECURSOS
+-- 7. DETECCIÓN DE RECURSOS
 local function findOres()
     local ores = {}
     for _, obj in pairs(workspace:GetDescendants()) do
@@ -438,28 +318,22 @@ local function findTrees()
     return trees
 end
 
--- 9. TELEPORT FUNCTIONS
+-- 8. TELEPORT
 local function teleportToLocation(name)
     local data = nil
     for section, tps in pairs(teleports) do
         for tpName, tpData in pairs(tps) do
-            if tpName == name then
-                data = tpData
-                break
-            end
+            if tpName == name then data = tpData; break end
         end
         if data then break end
     end
-    if not data and customTeleports[name] then
-        data = customTeleports[name]
-    end
+    if not data and customTeleports[name] then data = customTeleports[name] end
     if not data then notify("❌ Ubicación no encontrada"); return false end
     local target = Vector3.new(data.position[1], data.position[2], data.position[3])
     local char = game:GetService("Players").LocalPlayer.Character
     if not char then notify("❌ Personaje no encontrado"); return false end
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then notify("❌ HumanoidRootPart no encontrado"); return false end
-
     local steps = 8
     local start = hrp.Position
     for i = 1, steps do
@@ -486,7 +360,7 @@ local function saveCustomLocation(name)
     return true
 end
 
--- 10. AUTO FARM (CON SELECCIÓN MÚLTIPLE)
+-- 9. AUTO FARM
 local autoFarmActive = false
 local autoFarmTimer = 70
 local selectedOres = {}
@@ -526,13 +400,9 @@ local function autoFarmLoop()
     end
 end
 
--- 11. AUTO TALA
+-- 10. AUTO TALA
 local autoChopActive = false
-
-local function chopTree(tree)
-    task.wait(0.5 + math.random(1, 3) * 0.1)
-end
-
+local function chopTree(tree) task.wait(0.5 + math.random(1, 3) * 0.1) end
 local function autoChopLoop()
     while autoChopActive do
         local trees = findTrees()
@@ -545,15 +415,11 @@ local function autoChopLoop()
     end
 end
 
--- 12. AUTO PESCA
+-- 11. AUTO PESCA
 local autoFishActive = false
-
 local function autoFishLoop()
     while autoFishActive do
-        if not getPlayerFishingRod() then
-            notify("❌ No tienes caña de pescar equipada")
-            break
-        end
+        if not getPlayerFishingRod() then notify("❌ No tienes caña"); break end
         task.wait(2 + math.random(1, 5))
         task.wait(1 + math.random(1, 3))
         notify("🎣 Pescado capturado!")
@@ -561,85 +427,35 @@ local function autoFishLoop()
     end
 end
 
--- 13. AUTO MISSIONS (EJECUCIÓN COMPLETA CON UN SOLO CLIC)
+-- 12. AUTO MISSIONS
 local function executeMissionStep(mission, stepIndex)
     local step = mission.steps[stepIndex]
     if not step then return false end
-    
     notify("📌 Paso " .. stepIndex .. ": " .. step.text)
-    
-    if step.action == "teleport" then
-        teleportToLocation(step.target)
-        task.wait(1)
+    if step.action == "teleport" then teleportToLocation(step.target); task.wait(1)
     elseif step.action == "talk" then
-        -- Buscar NPC en workspace
         local npc = nil
         for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("Model") and obj.Name:find(step.npc) then
-                npc = obj
-                break
-            end
+            if obj:IsA("Model") and obj.Name:find(step.npc) then npc = obj; break end
         end
-        if npc then
-            notify("💬 Hablando con " .. step.npc)
-            -- Intentar interactuar con el NPC (simulado)
-            local humanoid = npc:FindFirstChild("Humanoid")
-            if humanoid then
-                -- Simular diálogo
-                task.wait(1)
-            end
-        else
-            notify("⚠️ NPC " .. step.npc .. " no encontrado, saltando paso")
-            task.wait(1)
-        end
-    elseif step.action == "mine" then
-        notify("⛏️ Minando " .. step.amount .. " de " .. step.item)
-        task.wait(2)
-    elseif step.action == "refine" then
-        notify("🔧 Refinando " .. step.amount .. " de " .. step.item)
-        task.wait(1)
-    elseif step.action == "buy" then
-        notify("🛒 Comprando: " .. table.concat(step.items, ", "))
-        task.wait(1)
-    elseif step.action == "sell" then
-        notify("💰 Vendiendo: " .. table.concat(step.items, ", "))
-        task.wait(1)
-    elseif step.action == "wait" then
-        local minutes = math.floor(step.time / 60)
-        local seconds = step.time % 60
-        notify("⏳ Esperando " .. minutes .. "m " .. seconds .. "s")
-        task.wait(step.time)
-    elseif step.action == "climb" then
-        notify("🧗 Escalando la montaña...")
-        task.wait(2)
-    elseif step.action == "reach_top" then
-        notify("🏔️ Llegaste a la cima!")
-        task.wait(1)
-    elseif step.action == "craft" then
-        notify("🔨 Fabricando " .. step.amount .. " de " .. step.item)
-        task.wait(2)
-    elseif step.action == "reach_level" then
-        notify("📈 Alcanzando nivel " .. step.level)
-        task.wait(1)
-    end
-    
+        if npc then notify("💬 Hablando con " .. step.npc); task.wait(1)
+        else notify("⚠️ NPC " .. step.npc .. " no encontrado"); task.wait(1) end
+    elseif step.action == "mine" then notify("⛏️ Minando " .. step.amount .. " de " .. step.item); task.wait(2)
+    elseif step.action == "refine" then notify("🔧 Refinando"); task.wait(1)
+    elseif step.action == "buy" then notify("🛒 Comprando items"); task.wait(1)
+    elseif step.action == "sell" then notify("💰 Vendiendo items"); task.wait(1)
+    elseif step.action == "wait" then notify("⏳ Esperando " .. math.floor(step.time/60) .. "m " .. step.time%60 .. "s"); task.wait(step.time)
+    elseif step.action == "climb" then notify("🧗 Escalando..."); task.wait(2)
+    elseif step.action == "reach_top" then notify("🏔️ Llegaste a la cima!"); task.wait(1)
+    elseif step.action == "craft" then notify("🔨 Fabricando"); task.wait(2)
+    elseif step.action == "reach_level" then notify("📈 Alcanzando nivel " .. step.level); task.wait(1) end
     return true
 end
 
 local function startMission(mission)
-    if mission.completed then
-        notify("✅ Misión ya completada")
-        return
-    end
-    
+    if mission.completed then notify("✅ Misión ya completada"); return end
     local money = getPlayerMoney()
-    if money < mission.cost then
-        local falta = mission.cost - money
-        notify("❌ No tienes dinero suficiente. Necesitas $" .. falta .. " más.")
-        return
-    end
-    
-    -- Ejecutar toda la misión en una corrutina
+    if money < mission.cost then notify("❌ Necesitas $" .. (mission.cost - money) .. " más."); return end
     task.spawn(function()
         for i = 1, #mission.steps do
             if mission.completed then break end
@@ -652,14 +468,14 @@ local function startMission(mission)
                 end
                 saveMissions()
             else
-                notify("❌ Error en el paso " .. i .. ", misión pausada")
+                notify("❌ Error en paso " .. i)
                 break
             end
         end
     end)
 end
 
--- 14. FLY
+-- 13. FLY
 local flyActive = false
 local flySpeed = 40
 local flyBodyVelocity = nil
@@ -671,29 +487,21 @@ local function startFly()
     if not char then notify("❌ Personaje no encontrado"); return end
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then notify("❌ HumanoidRootPart no encontrado"); return end
-
     if flyBodyVelocity then flyBodyVelocity:Destroy() end
     if flyBodyGyro then flyBodyGyro:Destroy() end
     if flyConnection then flyConnection:Disconnect() end
-
     flyBodyVelocity = Instance.new("BodyVelocity")
     flyBodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
     flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
     flyBodyVelocity.Parent = hrp
-
     flyBodyGyro = Instance.new("BodyGyro")
     flyBodyGyro.MaxTorque = Vector3.new(100000, 100000, 100000)
     flyBodyGyro.CFrame = hrp.CFrame
     flyBodyGyro.Parent = hrp
-
     local humanoid = char:FindFirstChild("Humanoid")
     if humanoid then humanoid.PlatformStand = true end
-
     flyConnection = game:GetService("RunService").Heartbeat:Connect(function()
-        if not flyActive then
-            if flyBodyVelocity then flyBodyVelocity.Velocity = Vector3.new(0, 0, 0) end
-            return
-        end
+        if not flyActive then if flyBodyVelocity then flyBodyVelocity.Velocity = Vector3.new(0, 0, 0) end; return end
         local input = game:GetService("UserInputService")
         local move = Vector3.new(0, 0, 0)
         if input:IsKeyDown(Enum.KeyCode.W) then move = move + hrp.CFrame.LookVector end
@@ -711,37 +519,19 @@ end
 
 local function stopFly()
     flyActive = false
-    if flyBodyVelocity then
-        flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        flyBodyVelocity:Destroy()
-        flyBodyVelocity = nil
-    end
-    if flyBodyGyro then
-        flyBodyGyro:Destroy()
-        flyBodyGyro = nil
-    end
-    if flyConnection then
-        flyConnection:Disconnect()
-        flyConnection = nil
-    end
+    if flyBodyVelocity then flyBodyVelocity:Destroy(); flyBodyVelocity = nil end
+    if flyBodyGyro then flyBodyGyro:Destroy(); flyBodyGyro = nil end
+    if flyConnection then flyConnection:Disconnect(); flyConnection = nil end
     local char = game:GetService("Players").LocalPlayer.Character
-    if char then
-        local hum = char:FindFirstChild("Humanoid")
-        if hum then hum.PlatformStand = false end
-    end
+    if char then local hum = char:FindFirstChild("Humanoid"); if hum then hum.PlatformStand = false end end
     notify("🦅 Fly desactivado")
 end
 
-local function toggleFly()
-    flyActive = not flyActive
-    if flyActive then startFly() else stopFly() end
-    return flyActive
-end
+local function toggleFly() flyActive = not flyActive; if flyActive then startFly() else stopFly() end; return flyActive end
 
--- 15. INFINITE JUMP
+-- 14. INFINITE JUMP
 local jumpActive = false
 local jumpConnection = nil
-
 local function toggleInfiniteJump()
     jumpActive = not jumpActive
     if jumpActive then
@@ -761,20 +551,16 @@ local function toggleInfiniteJump()
         end
         notify("🦘 Infinite Jump activado")
     else
-        if jumpConnection then
-            jumpConnection:Disconnect()
-            jumpConnection = nil
-        end
+        if jumpConnection then jumpConnection:Disconnect(); jumpConnection = nil end
         notify("🦘 Infinite Jump desactivado")
     end
     return jumpActive
 end
 
--- 16. TIME DISPLAY
+-- 15. TIME DISPLAY
 local timeActive = true
 local timeGui = nil
 local timeLabel = nil
-
 local function getGameTime()
     local lighting = game:GetService("Lighting")
     if lighting.ClockTime then return lighting.ClockTime end
@@ -784,7 +570,6 @@ local function getGameTime()
     end
     return (tick() % 86400) / 3600
 end
-
 local function formatGameTime(hours)
     local ampm = "AM"
     local h = math.floor(hours)
@@ -793,7 +578,6 @@ local function formatGameTime(hours)
     if h == 0 then h = 12 end
     return string.format("%02d:%02d %s", h, m, ampm)
 end
-
 local function createTimeGUI()
     if timeGui then timeGui:Destroy() end
     local sg = Instance.new("ScreenGui", gethui())
@@ -817,12 +601,8 @@ local function createTimeGUI()
     timeLabel = label
     return label
 end
-
 local function updateTime()
-    if not timeActive then
-        if timeGui then timeGui.Enabled = false end
-        return
-    end
+    if not timeActive then if timeGui then timeGui.Enabled = false end; return end
     if timeGui then timeGui.Enabled = true end
     if not timeLabel then createTimeGUI() end
     local hours = getGameTime()
@@ -832,22 +612,13 @@ local function updateTime()
         timeLabel.Text = icon .. " " .. formatted
     end
 end
-
 createTimeGUI()
-task.spawn(function()
-    while task.wait(1) do updateTime() end
-end)
+task.spawn(function() while task.wait(1) do updateTime() end end)
+local function toggleTime() timeActive = not timeActive; notify("🕐 Time: " .. (timeActive and "ON" or "OFF")); return timeActive end
 
-local function toggleTime()
-    timeActive = not timeActive
-    notify("🕐 Time: " .. (timeActive and "ON" or "OFF"))
-    return timeActive
-end
-
--- 17. ANTI-STAFF
+-- 16. ANTI-STAFF
 local antiStaffActive = true
 local staffDetected = false
-
 local function checkStaff()
     if not antiStaffActive then return end
     local players = game:GetService("Players"):GetPlayers()
@@ -865,27 +636,13 @@ local function checkStaff()
     staffDetected = false
     return false
 end
+task.spawn(function() while task.wait(10) do checkStaff() end end)
+local function toggleAntiStaff() antiStaffActive = not antiStaffActive; notify("🛡️ Anti-Staff: " .. (antiStaffActive and "ON" or "OFF")); return antiStaffActive end
 
-task.spawn(function()
-    while task.wait(10) do
-        checkStaff()
-    end
-end)
-
-local function toggleAntiStaff()
-    antiStaffActive = not antiStaffActive
-    notify("🛡️ Anti-Staff: " .. (antiStaffActive and "ON" or "OFF"))
-    return antiStaffActive
-end
-
--- 18. ANTI-AFK
+-- 17. ANTI-AFK
 local antiAFKActive = true
 local lastActivity = tick()
-
-game:GetService("UserInputService").InputBegan:Connect(function()
-    lastActivity = tick()
-end)
-
+game:GetService("UserInputService").InputBegan:Connect(function() lastActivity = tick() end)
 task.spawn(function()
     while task.wait(60) do
         if not antiAFKActive then break end
@@ -898,14 +655,9 @@ task.spawn(function()
         end
     end
 end)
+local function toggleAntiAFK() antiAFKActive = not antiAFKActive; notify("💤 Anti-AFK: " .. (antiAFKActive and "ON" or "OFF")); return antiAFKActive end
 
-local function toggleAntiAFK()
-    antiAFKActive = not antiAFKActive
-    notify("💤 Anti-AFK: " .. (antiAFKActive and "ON" or "OFF"))
-    return antiAFKActive
-end
-
--- 19. ANTI-BAN
+-- 18. ANTI-BAN
 local oldNamecall = getrawmetatable(game).__namecall
 setreadonly(getrawmetatable(game), false)
 getrawmetatable(game).__namecall = newcclosure(function(self, ...)
@@ -919,457 +671,705 @@ end)
 setreadonly(getrawmetatable(game), true)
 writeLog("Anti-Ban/Kick activo")
 
--- 20. CREAR VENTANA WINDUI (CON TODAS LAS SECCIONES)
-local window = WindUI:CreateWindow({
-    Title   = "RC2",
-    Author  = "by orvexpp",
-    Folder  = "rc2_data",
-    Icon    = "pickaxe",
-    Theme   = "Dark",
-    Acrylic = true,
-    Transparent = true,
-    Size    = UDim2.fromOffset(680, 460),
-    MinSize = Vector2.new(560, 350),
-    MaxSize = Vector2.new(850, 560),
-    Resizable  = true,
-    AutoScale  = true,
-    NewElements = true,
-    HideSearchBar = false,
-    ScrollBarEnabled = false,
-    SideBarWidth = 200,
-    Topbar = {
-        Height      = 44,
-        ButtonsType = "Default",
-    },
-    OpenButton = {
-        Title = "RC2",
-        Icon = "pickaxe",
-        CornerRadius = UDim.new(1, 0),
-        StrokeThickness = 3,
-        Enabled = true,
-        Draggable = true,
-        OnlyMobile = false,
-        Scale = 1,
-        Color = ColorSequence.new(
-            Color3.fromHex("#000000"),
-            Color3.fromHex("#000000")
-        ),
-    },
-    User = {
-        Enabled  = true,
-        Anonymous = true,
-    },
-})
+-- 19. UI COMPLETA CON UI NATIVA (FUNCIONAL EN DELTA)
+local function createFloatingButton()
+    local sg = Instance.new("ScreenGui", gethui())
+    sg.Name = "FloatingBtn"
+    sg.ResetOnSpawn = false
 
--- 21. FUNCIÓN PARA LIMPIAR CONTENEDORES (EVITA DUPLICACIÓN)
-local function clearContainer(container)
-    if not container then return end
-    for _, child in pairs(container:GetChildren()) do
-        if child:IsA("TextButton") or child:IsA("Frame") or child:IsA("ScrollingFrame") then
-            child:Destroy()
+    local btn = Instance.new("ImageButton", sg)
+    btn.Size = UDim2.new(0, 60, 0, 60)
+    btn.Position = UDim2.new(0.85, 0, 0.85, 0)
+    btn.Image = "rbxassetid://4483362458"
+    btn.BackgroundColor3 = Color3.fromRGB(30, 40, 60)
+    btn.BackgroundTransparency = 0.1
+    local corner = Instance.new("UICorner", btn)
+    corner.CornerRadius = UDim.new(1, 0)
+
+    local dragging = false
+    local dragStart, startPos
+    local inputService = game:GetService("UserInputService")
+
+    btn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = btn.Position
         end
+    end)
+    btn.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    inputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - dragStart
+            btn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    local mainGui = nil
+    local guiOpen = false
+
+    btn.MouseButton1Click:Connect(function()
+        if not mainGui then mainGui = createMainGUI() end
+        guiOpen = not guiOpen
+        mainGui.Enabled = guiOpen
+        if guiOpen then notify("📂 GUI abierta", 2) else notify("📂 GUI cerrada", 2) end
+    end)
+    btn.TouchTap:Connect(function()
+        if not mainGui then mainGui = createMainGUI() end
+        guiOpen = not guiOpen
+        mainGui.Enabled = guiOpen
+        if guiOpen then notify("📂 GUI abierta", 2) else notify("📂 GUI cerrada", 2) end
+    end)
+
+    return sg
+end
+
+local function createMainGUI()
+    local sg = Instance.new("ScreenGui", gethui())
+    sg.Name = "MainGUI"
+    sg.ResetOnSpawn = false
+    sg.Enabled = false
+
+    local backdrop = Instance.new("Frame", sg)
+    backdrop.Size = UDim2.new(1, 0, 1, 0)
+    backdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    backdrop.BackgroundTransparency = 0.5
+    backdrop.Active = true
+    backdrop.TouchTap:Connect(function() sg.Enabled = false; notify("GUI cerrada", 2) end)
+
+    local frame = Instance.new("Frame", sg)
+    frame.Size = UDim2.new(0.92, 0, 0.85, 0)
+    frame.Position = UDim2.new(0.04, 0, 0.075, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(18, 20, 35)
+    frame.BackgroundTransparency = 0.1
+    local corner = Instance.new("UICorner", frame)
+    corner.CornerRadius = UDim.new(0, 16)
+
+    local title = Instance.new("TextLabel", frame)
+    title.Size = UDim2.new(1, 0, 0, 45)
+    title.Text = "⚒️ RC2"
+    title.TextColor3 = Color3.fromRGB(255, 200, 80)
+    title.TextScaled = true
+    title.Font = Enum.Font.GothamBold
+    title.BackgroundTransparency = 1
+
+    -- PESTAÑAS
+    local tabFrame = Instance.new("Frame", frame)
+    tabFrame.Size = UDim2.new(1, 0, 0, 40)
+    tabFrame.Position = UDim2.new(0, 0, 0, 50)
+    tabFrame.BackgroundTransparency = 1
+
+    local tabs = {}
+    local contents = {}
+
+    local function createTab(name, content)
+        local btn = Instance.new("TextButton", tabFrame)
+        btn.Size = UDim2.new(0.2, 0, 1, 0)
+        btn.Position = UDim2.new(#tabs * 0.2, 0, 0, 0)
+        btn.Text = name
+        btn.TextScaled = true
+        btn.BackgroundColor3 = Color3.fromRGB(50, 55, 75)
+        btn.BackgroundTransparency = 0.2
+        local corner = Instance.new("UICorner", btn)
+        corner.CornerRadius = UDim.new(0, 6)
+        table.insert(tabs, btn)
+        return btn
     end
-end
 
--- ====== PESTAÑA 1: FARM ======
-local farmTab = window:Tab({ Title = "🌱 Farm", Icon = "pickaxe" })
+    local contentFrame = Instance.new("ScrollingFrame", frame)
+    contentFrame.Size = UDim2.new(1, 0, 1, -100)
+    contentFrame.Position = UDim2.new(0, 0, 0, 95)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.CanvasSize = UDim2.new(0, 0, 0, 1400)
+    contentFrame.ScrollBarThickness = 6
 
--- Subsección MINERÍA
-farmTab:Paragraph({ Title = "⛏️ MINERÍA", Content = "Selecciona minerales y activa AutoFarm" })
+    -- ====== PESTAÑA 1: FARM ======
+    local farmContent = Instance.new("Frame", contentFrame)
+    farmContent.Size = UDim2.new(1, 0, 1, 0)
+    farmContent.BackgroundTransparency = 1
+    farmContent.Visible = true
 
-farmTab:Toggle({
-    Title = "AutoFarm",
-    Value = false,
-    Callback = function(Value)
-        autoFarmActive = Value
-        if autoFarmActive then
-            task.spawn(autoFarmLoop)
-            notify("⛏️ AutoFarm iniciado")
-        else
-            notify("⛏️ AutoFarm detenido")
-        end
-    end,
-})
+    -- MINERÍA
+    local miningSection = Instance.new("Frame", farmContent)
+    miningSection.Size = UDim2.new(1, 0, 0, 350)
+    miningSection.BackgroundTransparency = 1
 
--- Slider híbrido: muestra el valor y botones + y -
-farmTab:Paragraph({ Title = "⏱️ Tiempo para vender", Content = "70 segundos" })
-local timeLabel = farmTab:Paragraph({ Title = "", Content = "" })
+    local l1 = Instance.new("TextLabel", miningSection)
+    l1.Size = UDim2.new(0.9, 0, 0, 30)
+    l1.Position = UDim2.new(0.05, 0, 0, 0)
+    l1.Text = "⛏️ MINERÍA"
+    l1.TextColor3 = Color3.fromRGB(100, 255, 150)
+    l1.TextScaled = true
+    l1.BackgroundTransparency = 1
 
-local function updateTimeDisplay()
-    local minutes = math.floor(autoFarmTimer / 60)
-    local seconds = autoFarmTimer % 60
-    local text = minutes > 0 and minutes .. "m " .. seconds .. "s" or seconds .. "s"
-    timeLabel.Content = "Valor actual: " .. text
-end
+    local farmBtn = Instance.new("TextButton", miningSection)
+    farmBtn.Size = UDim2.new(0.9, 0, 0, 45)
+    farmBtn.Position = UDim2.new(0.05, 0, 0.08, 0)
+    farmBtn.Text = "AutoFarm: OFF"
+    farmBtn.TextScaled = true
+    farmBtn.BackgroundColor3 = Color3.fromRGB(50, 70, 100)
+    local c1 = Instance.new("UICorner", farmBtn)
+    c1.CornerRadius = UDim.new(0, 10)
+    farmBtn.TouchTap:Connect(function()
+        autoFarmActive = not autoFarmActive
+        farmBtn.Text = "AutoFarm: " .. (autoFarmActive and "ON" or "OFF")
+        if autoFarmActive then task.spawn(autoFarmLoop); notify("⛏️ AutoFarm iniciado") else notify("⛏️ AutoFarm detenido") end
+    end)
 
--- Botones para ajustar el tiempo
-farmTab:Button({
-    Title = "- 1s",
-    Callback = function()
+    -- Tiempo con botones + y -
+    local timeLabel = Instance.new("TextLabel", miningSection)
+    timeLabel.Size = UDim2.new(0.4, 0, 0, 30)
+    timeLabel.Position = UDim2.new(0.05, 0, 0.18, 0)
+    timeLabel.Text = "⏱️ Tiempo: 70s"
+    timeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    timeLabel.TextScaled = true
+    timeLabel.BackgroundTransparency = 1
+
+    local function updateTimeLabel()
+        local minutes = math.floor(autoFarmTimer / 60)
+        local seconds = autoFarmTimer % 60
+        timeLabel.Text = "⏱️ Tiempo: " .. (minutes > 0 and minutes .. "m " .. seconds .. "s" or seconds .. "s")
+    end
+
+    local timeMinus = Instance.new("TextButton", miningSection)
+    timeMinus.Size = UDim2.new(0.1, 0, 0, 30)
+    timeMinus.Position = UDim2.new(0.5, 0, 0.18, 0)
+    timeMinus.Text = "-1"
+    timeMinus.TextScaled = true
+    timeMinus.BackgroundColor3 = Color3.fromRGB(80, 80, 120)
+    local c2 = Instance.new("UICorner", timeMinus)
+    c2.CornerRadius = UDim.new(0, 6)
+    timeMinus.TouchTap:Connect(function()
         autoFarmTimer = math.max(10, autoFarmTimer - 1)
-        updateTimeDisplay()
-    end,
-})
+        updateTimeLabel()
+    end)
 
-farmTab:Button({
-    Title = "+ 1s",
-    Callback = function()
+    local timePlus = Instance.new("TextButton", miningSection)
+    timePlus.Size = UDim2.new(0.1, 0, 0, 30)
+    timePlus.Position = UDim2.new(0.65, 0, 0.18, 0)
+    timePlus.Text = "+1"
+    timePlus.TextScaled = true
+    timePlus.BackgroundColor3 = Color3.fromRGB(80, 80, 120)
+    local c3 = Instance.new("UICorner", timePlus)
+    c3.CornerRadius = UDim.new(0, 6)
+    timePlus.TouchTap:Connect(function()
         autoFarmTimer = math.min(260, autoFarmTimer + 1)
-        updateTimeDisplay()
-    end,
-})
+        updateTimeLabel()
+    end)
 
-farmTab:Button({
-    Title = "- 5s",
-    Callback = function()
+    local timeMinus5 = Instance.new("TextButton", miningSection)
+    timeMinus5.Size = UDim2.new(0.1, 0, 0, 30)
+    timeMinus5.Position = UDim2.new(0.78, 0, 0.18, 0)
+    timeMinus5.Text = "-5"
+    timeMinus5.TextScaled = true
+    timeMinus5.BackgroundColor3 = Color3.fromRGB(80, 80, 120)
+    local c4 = Instance.new("UICorner", timeMinus5)
+    c4.CornerRadius = UDim.new(0, 6)
+    timeMinus5.TouchTap:Connect(function()
         autoFarmTimer = math.max(10, autoFarmTimer - 5)
-        updateTimeDisplay()
-    end,
-})
+        updateTimeLabel()
+    end)
 
-farmTab:Button({
-    Title = "+ 5s",
-    Callback = function()
+    local timePlus5 = Instance.new("TextButton", miningSection)
+    timePlus5.Size = UDim2.new(0.1, 0, 0, 30)
+    timePlus5.Position = UDim2.new(0.88, 0, 0.18, 0)
+    timePlus5.Text = "+5"
+    timePlus5.TextScaled = true
+    timePlus5.BackgroundColor3 = Color3.fromRGB(80, 80, 120)
+    local c5 = Instance.new("UICorner", timePlus5)
+    c5.CornerRadius = UDim.new(0, 6)
+    timePlus5.TouchTap:Connect(function()
         autoFarmTimer = math.min(260, autoFarmTimer + 5)
-        updateTimeDisplay()
-    end,
-})
-updateTimeDisplay()
+        updateTimeLabel()
+    end)
+    updateTimeLabel()
 
-farmTab:Paragraph({ Title = "📋 Minerales", Content = "Toca para seleccionar/deseleccionar" })
+    -- Minerales
+    local oreLabel = Instance.new("TextLabel", miningSection)
+    oreLabel.Size = UDim2.new(0.9, 0, 0, 25)
+    oreLabel.Position = UDim2.new(0.05, 0, 0.25, 0)
+    oreLabel.Text = "📋 Minerales (selección múltiple):"
+    oreLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    oreLabel.TextScaled = true
+    oreLabel.BackgroundTransparency = 1
 
-local oreContainer = farmTab:CreateContainer({ Title = "Minerales" })
+    local oreScroll = Instance.new("ScrollingFrame", miningSection)
+    oreScroll.Size = UDim2.new(0.9, 0, 0, 120)
+    oreScroll.Position = UDim2.new(0.05, 0, 0.32, 0)
+    oreScroll.BackgroundTransparency = 1
+    oreScroll.CanvasSize = UDim2.new(0, 0, 0, 400)
+    oreScroll.ScrollBarThickness = 4
 
-local function createOreButtons()
-    clearContainer(oreContainer)
-    local ores = findOres()
-    local unique = {}
-    for _, ore in pairs(ores) do
-        if not table.find(unique, ore.name) then
-            table.insert(unique, ore.name)
+    local function refreshOreList()
+        for _, child in pairs(oreScroll:GetChildren()) do
+            if child:IsA("TextButton") then child:Destroy() end
         end
-    end
-    for _, name in ipairs(unique) do
-        local selected = table.find(selectedOres, name) ~= nil
-        oreContainer:Button({
-            Title = (selected and "✅ " or "⬜ ") .. name .. " (Tier " .. oreDatabase[name].tier .. ")",
-            Callback = function()
+        local ores = findOres()
+        local unique = {}
+        for _, ore in pairs(ores) do
+            if not table.find(unique, ore.name) then
+                table.insert(unique, ore.name)
+            end
+        end
+        for _, name in ipairs(unique) do
+            local btn = Instance.new("TextButton", oreScroll)
+            btn.Size = UDim2.new(0.9, 0, 0, 35)
+            local selected = table.find(selectedOres, name) ~= nil
+            btn.Text = (selected and "✅ " or "⬜ ") .. name .. " (Tier " .. oreDatabase[name].tier .. ")"
+            btn.TextScaled = true
+            btn.BackgroundColor3 = selected and Color3.fromRGB(0, 150, 50) or Color3.fromRGB(60, 60, 90)
+            local c = Instance.new("UICorner", btn)
+            c.CornerRadius = UDim.new(0, 6)
+            btn.TouchTap:Connect(function()
                 local idx = table.find(selectedOres, name)
-                if idx then
-                    table.remove(selectedOres, idx)
-                else
-                    table.insert(selectedOres, name)
-                end
-                createOreButtons()
-            end,
-        })
-    end
-end
-
-farmTab:Button({
-    Title = "🔄 Refrescar minerales",
-    Callback = function()
-        createOreButtons()
-        notify("🔄 Lista actualizada")
-    end,
-})
-
--- Subsección TALA
-farmTab:Paragraph({ Title = "🪓 TALA", Content = "Selecciona árboles y activa Auto Tala" })
-
-farmTab:Toggle({
-    Title = "Auto Tala",
-    Value = false,
-    Callback = function(Value)
-        autoChopActive = Value
-        if autoChopActive then
-            task.spawn(autoChopLoop)
-            notify("🪓 Auto Tala iniciado")
-        else
-            notify("🪓 Auto Tala detenido")
+                if idx then table.remove(selectedOres, idx) else table.insert(selectedOres, name) end
+                refreshOreList()
+            end)
         end
-    end,
-})
-
-farmTab:Paragraph({ Title = "🌳 Árboles", Content = "Toca para seleccionar/deseleccionar" })
-
-local treeContainer = farmTab:CreateContainer({ Title = "Árboles" })
-
-local function createTreeButtons()
-    clearContainer(treeContainer)
-    local trees = findTrees()
-    local unique = {}
-    for _, tree in pairs(trees) do
-        if not table.find(unique, tree.name) then
-            table.insert(unique, tree.name)
-        end
+        oreScroll.CanvasSize = UDim2.new(0, 0, 0, #unique * 40 + 20)
     end
-    for _, name in ipairs(unique) do
-        local selected = table.find(selectedTrees, name) ~= nil
-        treeContainer:Button({
-            Title = (selected and "✅ " or "⬜ ") .. name .. " (Tier " .. treeDatabase[name].tier .. ")",
-            Callback = function()
+
+    local refreshBtn = Instance.new("TextButton", miningSection)
+    refreshBtn.Size = UDim2.new(0.4, 0, 0, 35)
+    refreshBtn.Position = UDim2.new(0.3, 0, 0.55, 0)
+    refreshBtn.Text = "🔄 Refrescar"
+    refreshBtn.TextScaled = true
+    refreshBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
+    local c6 = Instance.new("UICorner", refreshBtn)
+    c6.CornerRadius = UDim.new(0, 8)
+    refreshBtn.TouchTap:Connect(refreshOreList)
+
+    -- TALA
+    local chopSection = Instance.new("Frame", farmContent)
+    chopSection.Size = UDim2.new(1, 0, 0, 280)
+    chopSection.Position = UDim2.new(0, 0, 0.38, 0)
+    chopSection.BackgroundTransparency = 1
+
+    local l2 = Instance.new("TextLabel", chopSection)
+    l2.Size = UDim2.new(0.9, 0, 0, 30)
+    l2.Position = UDim2.new(0.05, 0, 0, 0)
+    l2.Text = "🪓 TALA"
+    l2.TextColor3 = Color3.fromRGB(255, 200, 100)
+    l2.TextScaled = true
+    l2.BackgroundTransparency = 1
+
+    local chopBtn = Instance.new("TextButton", chopSection)
+    chopBtn.Size = UDim2.new(0.9, 0, 0, 40)
+    chopBtn.Position = UDim2.new(0.05, 0, 0.08, 0)
+    chopBtn.Text = "Auto Tala: OFF"
+    chopBtn.TextScaled = true
+    chopBtn.BackgroundColor3 = Color3.fromRGB(50, 70, 100)
+    local c7 = Instance.new("UICorner", chopBtn)
+    c7.CornerRadius = UDim.new(0, 8)
+    chopBtn.TouchTap:Connect(function()
+        autoChopActive = not autoChopActive
+        chopBtn.Text = "Auto Tala: " .. (autoChopActive and "ON" or "OFF")
+        if autoChopActive then task.spawn(autoChopLoop); notify("🪓 Auto Tala iniciado") else notify("🪓 Auto Tala detenido") end
+    end)
+
+    local treeLabel = Instance.new("TextLabel", chopSection)
+    treeLabel.Size = UDim2.new(0.9, 0, 0, 25)
+    treeLabel.Position = UDim2.new(0.05, 0, 0.2, 0)
+    treeLabel.Text = "🌳 Árboles (selección múltiple):"
+    treeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    treeLabel.TextScaled = true
+    treeLabel.BackgroundTransparency = 1
+
+    local treeScroll = Instance.new("ScrollingFrame", chopSection)
+    treeScroll.Size = UDim2.new(0.9, 0, 0, 100)
+    treeScroll.Position = UDim2.new(0.05, 0, 0.28, 0)
+    treeScroll.BackgroundTransparency = 1
+    treeScroll.CanvasSize = UDim2.new(0, 0, 0, 400)
+    treeScroll.ScrollBarThickness = 4
+
+    local function refreshTreeList()
+        for _, child in pairs(treeScroll:GetChildren()) do
+            if child:IsA("TextButton") then child:Destroy() end
+        end
+        local trees = findTrees()
+        local unique = {}
+        for _, tree in pairs(trees) do
+            if not table.find(unique, tree.name) then
+                table.insert(unique, tree.name)
+            end
+        end
+        for _, name in ipairs(unique) do
+            local btn = Instance.new("TextButton", treeScroll)
+            btn.Size = UDim2.new(0.9, 0, 0, 30)
+            local selected = table.find(selectedTrees, name) ~= nil
+            btn.Text = (selected and "✅ " or "⬜ ") .. name .. " (Tier " .. treeDatabase[name].tier .. ")"
+            btn.TextScaled = true
+            btn.BackgroundColor3 = selected and Color3.fromRGB(0, 150, 50) or Color3.fromRGB(60, 60, 90)
+            local c = Instance.new("UICorner", btn)
+            c.CornerRadius = UDim.new(0, 6)
+            btn.TouchTap:Connect(function()
                 local idx = table.find(selectedTrees, name)
-                if idx then
-                    table.remove(selectedTrees, idx)
-                else
-                    table.insert(selectedTrees, name)
-                end
-                createTreeButtons()
-            end,
-        })
+                if idx then table.remove(selectedTrees, idx) else table.insert(selectedTrees, name) end
+                refreshTreeList()
+            end)
+        end
+        treeScroll.CanvasSize = UDim2.new(0, 0, 0, #unique * 35 + 20)
     end
-end
 
-farmTab:Button({
-    Title = "🔄 Refrescar árboles",
-    Callback = function()
-        createTreeButtons()
-        notify("🔄 Lista actualizada")
-    end,
-})
+    local refreshTreeBtn = Instance.new("TextButton", chopSection)
+    refreshTreeBtn.Size = UDim2.new(0.4, 0, 0, 30)
+    refreshTreeBtn.Position = UDim2.new(0.3, 0, 0.5, 0)
+    refreshTreeBtn.Text = "🔄 Refrescar"
+    refreshTreeBtn.TextScaled = true
+    refreshTreeBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
+    local c8 = Instance.new("UICorner", refreshTreeBtn)
+    c8.CornerRadius = UDim.new(0, 8)
+    refreshTreeBtn.TouchTap:Connect(refreshTreeList)
 
--- Subsección PESCA
-farmTab:Paragraph({ Title = "🎣 PESCA", Content = "Activa Auto Pesca (necesitas caña equipada)" })
+    -- PESCA
+    local fishSection = Instance.new("Frame", farmContent)
+    fishSection.Size = UDim2.new(1, 0, 0, 150)
+    fishSection.Position = UDim2.new(0, 0, 0.68, 0)
+    fishSection.BackgroundTransparency = 1
 
-farmTab:Toggle({
-    Title = "Auto Pesca",
-    Value = false,
-    Callback = function(Value)
-        if not getPlayerFishingRod() and Value then
-            notify("❌ No tienes caña de pescar equipada")
-            return
+    local l3 = Instance.new("TextLabel", fishSection)
+    l3.Size = UDim2.new(0.9, 0, 0, 30)
+    l3.Position = UDim2.new(0.05, 0, 0, 0)
+    l3.Text = "🎣 PESCA"
+    l3.TextColor3 = Color3.fromRGB(100, 200, 255)
+    l3.TextScaled = true
+    l3.BackgroundTransparency = 1
+
+    local fishBtn = Instance.new("TextButton", fishSection)
+    fishBtn.Size = UDim2.new(0.9, 0, 0, 40)
+    fishBtn.Position = UDim2.new(0.05, 0, 0.08, 0)
+    fishBtn.Text = "Auto Pesca: OFF"
+    fishBtn.TextScaled = true
+    fishBtn.BackgroundColor3 = Color3.fromRGB(50, 70, 100)
+    local c9 = Instance.new("UICorner", fishBtn)
+    c9.CornerRadius = UDim.new(0, 8)
+    fishBtn.TouchTap:Connect(function()
+        if not getPlayerFishingRod() then notify("❌ No tienes caña de pescar equipada"); return end
+        autoFishActive = not autoFishActive
+        fishBtn.Text = "Auto Pesca: " .. (autoFishActive and "ON" or "OFF")
+        if autoFishActive then task.spawn(autoFishLoop); notify("🎣 Auto Pesca iniciado") else notify("🎣 Auto Pesca detenido") end
+    end)
+
+    local goBuyRod = Instance.new("TextButton", fishSection)
+    goBuyRod.Size = UDim2.new(0.4, 0, 0, 35)
+    goBuyRod.Position = UDim2.new(0.3, 0, 0.2, 0)
+    goBuyRod.Text = "🛒 Ir a comprar caña"
+    goBuyRod.TextScaled = true
+    goBuyRod.BackgroundColor3 = Color3.fromRGB(200, 150, 50)
+    local c10 = Instance.new("UICorner", goBuyRod)
+    c10.CornerRadius = UDim.new(0, 8)
+    goBuyRod.TouchTap:Connect(function() teleportToLocation("🏪 UCS Store"); notify("📍 Ve a Nautic Finds para comprar una caña") end)
+
+    -- ====== PESTAÑA 2: MISSIONS ======
+    local missionsContent = Instance.new("Frame", contentFrame)
+    missionsContent.Size = UDim2.new(1, 0, 1, 0)
+    missionsContent.BackgroundTransparency = 1
+    missionsContent.Visible = false
+
+    local l4 = Instance.new("TextLabel", missionsContent)
+    l4.Size = UDim2.new(0.9, 0, 0, 30)
+    l4.Position = UDim2.new(0.05, 0, 0, 0)
+    l4.Text = "📜 MISIONES"
+    l4.TextColor3 = Color3.fromRGB(100, 200, 255)
+    l4.TextScaled = true
+    l4.BackgroundTransparency = 1
+
+    local missionScroll = Instance.new("ScrollingFrame", missionsContent)
+    missionScroll.Size = UDim2.new(0.9, 0, 0, 400)
+    missionScroll.Position = UDim2.new(0.05, 0, 0.06, 0)
+    missionScroll.BackgroundTransparency = 1
+    missionScroll.CanvasSize = UDim2.new(0, 0, 0, 800)
+    missionScroll.ScrollBarThickness = 4
+
+    local function refreshMissions()
+        for _, child in pairs(missionScroll:GetChildren()) do
+            if child:IsA("TextButton") then child:Destroy() end
         end
-        autoFishActive = Value
-        if autoFishActive then
-            task.spawn(autoFishLoop)
-            notify("🎣 Auto Pesca iniciado")
-        else
-            notify("🎣 Auto Pesca detenido")
-        end
-    end,
-})
-
-farmTab:Button({
-    Title = "🛒 Ir a comprar caña",
-    Callback = function()
-        teleportToLocation("🏪 UCS Store")
-        notify("📍 Ve a la tienda Nautic Finds para comprar una caña")
-    end,
-})
-
--- ====== PESTAÑA 2: MISSIONS ======
-local missionsTab = window:Tab({ Title = "📜 Missions", Icon = "scroll" })
-
-missionsTab:Paragraph({ Title = "📋 Misiones disponibles", Content = "Toca una misión para ejecutarla automáticamente" })
-
-local missionContainer = missionsTab:CreateContainer({ Title = "Misiones" })
-
-local function refreshMissions()
-    clearContainer(missionContainer)
-    for _, mission in ipairs(missionsDB) do
-        local status = mission.completed and "🟢" or "⏳"
-        missionContainer:Button({
-            Title = status .. " " .. mission.name .. " ($" .. mission.cost .. ")",
-            Callback = function()
-                if mission.completed then
-                    notify("✅ Misión ya completada")
-                    return
-                end
+        for _, mission in ipairs(missionsDB) do
+            local status = mission.completed and "🟢" or "⏳"
+            local btn = Instance.new("TextButton", missionScroll)
+            btn.Size = UDim2.new(0.9, 0, 0, 40)
+            btn.Text = status .. " " .. mission.name .. " ($" .. mission.cost .. ")"
+            btn.TextScaled = true
+            btn.BackgroundColor3 = mission.completed and Color3.fromRGB(0, 100, 50) or Color3.fromRGB(60, 60, 90)
+            local c = Instance.new("UICorner", btn)
+            c.CornerRadius = UDim.new(0, 6)
+            btn.TouchTap:Connect(function()
+                if mission.completed then notify("✅ Misión ya completada") return end
                 startMission(mission)
-            end,
-        })
-    end
-end
-
-missionsTab:Button({
-    Title = "🔄 Refrescar misiones",
-    Callback = function()
-        refreshMissions()
-        notify("🔄 Lista actualizada")
-    end,
-})
-
--- ====== PESTAÑA 3: TELEPORTS ======
-local teleTab = window:Tab({ Title = "📍 Teleports", Icon = "map-pin" })
-
--- Tiendas
-teleTab:Paragraph({ Title = "🏪 TIENDAS", Content = "Toca para ir a una tienda" })
-
-for name, data in pairs(teleports.shops) do
-    teleTab:Button({
-        Title = name,
-        Callback = function()
-            teleportToLocation(name)
-        end,
-    })
-end
-
--- Minas
-teleTab:Paragraph({ Title = "⛏️ MINAS", Content = "Toca para ir a una mina" })
-
-for name, data in pairs(teleports.mines) do
-    teleTab:Button({
-        Title = name,
-        Callback = function()
-            teleportToLocation(name)
-        end,
-    })
-end
-
--- Otros
-teleTab:Paragraph({ Title = "📍 OTROS LUGARES", Content = "Toca para ir a otros lugares" })
-
-for name, data in pairs(teleports.misc) do
-    teleTab:Button({
-        Title = name,
-        Callback = function()
-            teleportToLocation(name)
-        end,
-    })
-end
-
--- Personalizados
-teleTab:Paragraph({ Title = "📌 TELEPORTS PERSONALIZADOS", Content = "Guarda tus propias ubicaciones" })
-
-local customContainer = teleTab:CreateContainer({ Title = "Personalizados" })
-
-local function refreshCustomTeleports()
-    clearContainer(customContainer)
-    for name, data in pairs(customTeleports) do
-        customContainer:Button({
-            Title = "📍 " .. name,
-            Callback = function()
-                teleportToLocation(name)
-            end,
-        })
-    end
-end
-
-teleTab:Paragraph({ Title = "💾 Guardar ubicación", Content = "Escribe un nombre y guarda tu posición" })
-
-local teleName = ""
-teleTab:Input({
-    Title = "Nombre del teleport",
-    Placeholder = "Ej: Mi base",
-    Callback = function(Text)
-        teleName = Text
-    end,
-})
-
-teleTab:Button({
-    Title = "💾 Guardar ubicación",
-    Callback = function()
-        if teleName ~= "" then
-            saveCustomLocation(teleName)
-            teleName = ""
-            refreshCustomTeleports()
-        else
-            notify("❌ Escribe un nombre primero")
+            end)
         end
-    end,
-})
+        missionScroll.CanvasSize = UDim2.new(0, 0, 0, #missionsDB * 45 + 20)
+    end
 
-teleTab:Button({
-    Title = "🔄 Refrescar personalizados",
-    Callback = function()
-        refreshCustomTeleports()
-        notify("🔄 Lista actualizada")
-    end,
-})
+    local refreshMissionsBtn = Instance.new("TextButton", missionsContent)
+    refreshMissionsBtn.Size = UDim2.new(0.4, 0, 0, 35)
+    refreshMissionsBtn.Position = UDim2.new(0.3, 0, 0.5, 0)
+    refreshMissionsBtn.Text = "🔄 Refrescar"
+    refreshMissionsBtn.TextScaled = true
+    refreshMissionsBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
+    local c11 = Instance.new("UICorner", refreshMissionsBtn)
+    c11.CornerRadius = UDim.new(0, 8)
+    refreshMissionsBtn.TouchTap:Connect(refreshMissions)
 
--- ====== PESTAÑA 4: OTHERS ======
-local othersTab = window:Tab({ Title = "⚙️ Others", Icon = "settings" })
+    -- ====== PESTAÑA 3: TELEPORTS ======
+    local teleContent = Instance.new("Frame", contentFrame)
+    teleContent.Size = UDim2.new(1, 0, 1, 0)
+    teleContent.BackgroundTransparency = 1
+    teleContent.Visible = false
 
-othersTab:Toggle({
-    Title = "🦅 Fly",
-    Value = false,
-    Callback = function(Value)
-        toggleFly()
-    end,
-})
+    local l5 = Instance.new("TextLabel", teleContent)
+    l5.Size = UDim2.new(0.9, 0, 0, 30)
+    l5.Position = UDim2.new(0.05, 0, 0, 0)
+    l5.Text = "📍 TELEPORTS"
+    l5.TextColor3 = Color3.fromRGB(255, 200, 100)
+    l5.TextScaled = true
+    l5.BackgroundTransparency = 1
 
--- Slider híbrido para velocidad de fly
-othersTab:Paragraph({ Title = "🚀 Velocidad de Fly", Content = "40" })
-local flySpeedLabel = othersTab:Paragraph({ Title = "", Content = "" })
+    local function createTeleportSection(title, tps)
+        local section = Instance.new("Frame", teleContent)
+        section.Size = UDim2.new(1, 0, 0, #tps * 40 + 50)
+        section.Position = UDim2.new(0, 0, #teleContent:GetChildren() * 0.1, 0)
+        section.BackgroundTransparency = 1
 
-local function updateFlySpeedDisplay()
-    flySpeedLabel.Content = "Velocidad actual: " .. flySpeed
-end
+        local label = Instance.new("TextLabel", section)
+        label.Size = UDim2.new(0.9, 0, 0, 25)
+        label.Position = UDim2.new(0.05, 0, 0, 0)
+        label.Text = title
+        label.TextColor3 = Color3.fromRGB(200, 200, 200)
+        label.TextScaled = true
+        label.BackgroundTransparency = 1
 
-othersTab:Button({
-    Title = "- 5",
-    Callback = function()
-        flySpeed = math.max(20, flySpeed - 5)
-        updateFlySpeedDisplay()
-        notify("🚀 Velocidad: " .. flySpeed)
-    end,
-})
+        local y = 0.08
+        for name, data in pairs(tps) do
+            local btn = Instance.new("TextButton", section)
+            btn.Size = UDim2.new(0.9, 0, 0, 35)
+            btn.Position = UDim2.new(0.05, 0, y, 0)
+            btn.Text = name
+            btn.TextScaled = true
+            btn.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
+            local c = Instance.new("UICorner", btn)
+            c.CornerRadius = UDim.new(0, 6)
+            btn.TouchTap:Connect(function() teleportToLocation(name) end)
+            y = y + 0.08
+        end
+    end
 
-othersTab:Button({
-    Title = "+ 5",
-    Callback = function()
-        flySpeed = math.min(100, flySpeed + 5)
-        updateFlySpeedDisplay()
-        notify("🚀 Velocidad: " .. flySpeed)
-    end,
-})
-updateFlySpeedDisplay()
+    createTeleportSection("🏪 TIENDAS", teleports.shops)
+    createTeleportSection("⛏️ MINAS", teleports.mines)
+    createTeleportSection("📍 OTROS LUGARES", teleports.misc)
 
-othersTab:Toggle({
-    Title = "🦘 Infinite Jump",
-    Value = false,
-    Callback = function(Value)
-        toggleInfiniteJump()
-    end,
-})
+    -- Personalizados
+    local customSection = Instance.new("Frame", teleContent)
+    customSection.Size = UDim2.new(1, 0, 0, 300)
+    customSection.Position = UDim2.new(0, 0, 0.55, 0)
+    customSection.BackgroundTransparency = 1
 
-othersTab:Toggle({
-    Title = "🕐 Time Display",
-    Value = true,
-    Callback = function(Value)
-        toggleTime()
-    end,
-})
+    local l6 = Instance.new("TextLabel", customSection)
+    l6.Size = UDim2.new(0.9, 0, 0, 25)
+    l6.Position = UDim2.new(0.05, 0, 0, 0)
+    l6.Text = "📌 TELEPORTS PERSONALIZADOS"
+    l6.TextColor3 = Color3.fromRGB(200, 200, 200)
+    l6.TextScaled = true
+    l6.BackgroundTransparency = 1
 
-othersTab:Toggle({
-    Title = "🛡️ Anti-Staff",
-    Value = true,
-    Callback = function(Value)
-        toggleAntiStaff()
-    end,
-})
+    local customScroll = Instance.new("ScrollingFrame", customSection)
+    customScroll.Size = UDim2.new(0.9, 0, 0, 120)
+    customScroll.Position = UDim2.new(0.05, 0, 0.08, 0)
+    customScroll.BackgroundTransparency = 1
+    customScroll.CanvasSize = UDim2.new(0, 0, 0, 400)
+    customScroll.ScrollBarThickness = 4
 
-othersTab:Toggle({
-    Title = "💤 Anti-AFK",
-    Value = true,
-    Callback = function(Value)
-        toggleAntiAFK()
-    end,
-})
+    local function refreshCustomTeleports()
+        for _, child in pairs(customScroll:GetChildren()) do
+            if child:IsA("TextButton") then child:Destroy() end
+        end
+        for name, data in pairs(customTeleports) do
+            local btn = Instance.new("TextButton", customScroll)
+            btn.Size = UDim2.new(0.9, 0, 0, 35)
+            btn.Text = "📍 " .. name
+            btn.TextScaled = true
+            btn.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
+            local c = Instance.new("UICorner", btn)
+            c.CornerRadius = UDim.new(0, 6)
+            btn.TouchTap:Connect(function() teleportToLocation(name) end)
+        end
+        customScroll.CanvasSize = UDim2.new(0, 0, 0, #customTeleports * 40 + 20)
+    end
 
--- ====== PESTAÑA 5: SETTINGS ======
-local settingsTab = window:Tab({ Title = "⚙️ Settings", Icon = "settings" })
+    local teleNameInput = Instance.new("TextBox", customSection)
+    teleNameInput.Size = UDim2.new(0.6, 0, 0, 35)
+    teleNameInput.Position = UDim2.new(0.05, 0, 0.35, 0)
+    teleNameInput.PlaceholderText = "Nombre del teleport"
+    teleNameInput.Text = ""
+    teleNameInput.TextScaled = true
+    teleNameInput.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    teleNameInput.TextColor3 = Color3.fromRGB(255, 255, 255)
 
-settingsTab:Button({
-    Title = "💰 Actualizar dinero",
-    Callback = function()
-        local money = getPlayerMoney()
-        notify("💰 $" .. money)
-    end,
-})
+    local saveTeleBtn = Instance.new("TextButton", customSection)
+    saveTeleBtn.Size = UDim2.new(0.25, 0, 0, 35)
+    saveTeleBtn.Position = UDim2.new(0.68, 0, 0.35, 0)
+    saveTeleBtn.Text = "💾 Guardar"
+    saveTeleBtn.TextScaled = true
+    saveTeleBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+    local c12 = Instance.new("UICorner", saveTeleBtn)
+    c12.CornerRadius = UDim.new(0, 8)
+    saveTeleBtn.TouchTap:Connect(function()
+        local name = teleNameInput.Text
+        if name ~= "" then saveCustomLocation(name); teleNameInput.Text = ""; refreshCustomTeleports()
+        else notify("❌ Escribe un nombre primero") end
+    end)
 
-settingsTab:Button({
-    Title = "⛏️ Ver pico equipado",
-    Callback = function()
-        local tier = getPlayerPickaxeTier()
-        notify("⛏️ Tier del pico: " .. tier)
-    end,
-})
+    local refreshCustomBtn = Instance.new("TextButton", customSection)
+    refreshCustomBtn.Size = UDim2.new(0.4, 0, 0, 30)
+    refreshCustomBtn.Position = UDim2.new(0.3, 0, 0.44, 0)
+    refreshCustomBtn.Text = "🔄 Refrescar"
+    refreshCustomBtn.TextScaled = true
+    refreshCustomBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
+    local c13 = Instance.new("UICorner", refreshCustomBtn)
+    c13.CornerRadius = UDim.new(0, 8)
+    refreshCustomBtn.TouchTap:Connect(refreshCustomTeleports)
 
-settingsTab:Button({
-    Title = "📜 Ver Logs de hoy",
-    Callback = function()
+    -- ====== PESTAÑA 4: OTHERS ======
+    local othersContent = Instance.new("Frame", contentFrame)
+    othersContent.Size = UDim2.new(1, 0, 1, 0)
+    othersContent.BackgroundTransparency = 1
+    othersContent.Visible = false
+
+    local l7 = Instance.new("TextLabel", othersContent)
+    l7.Size = UDim2.new(0.9, 0, 0, 30)
+    l7.Position = UDim2.new(0.05, 0, 0, 0)
+    l7.Text = "⚙️ OTRAS FUNCIONES"
+    l7.TextColor3 = Color3.fromRGB(255, 180, 100)
+    l7.TextScaled = true
+    l7.BackgroundTransparency = 1
+
+    -- Fly
+    local flyBtn = Instance.new("TextButton", othersContent)
+    flyBtn.Size = UDim2.new(0.9, 0, 0, 40)
+    flyBtn.Position = UDim2.new(0.05, 0, 0.06, 0)
+    flyBtn.Text = "🦅 Fly: OFF"
+    flyBtn.TextScaled = true
+    flyBtn.BackgroundColor3 = Color3.fromRGB(50, 70, 100)
+    local c14 = Instance.new("UICorner", flyBtn)
+    c14.CornerRadius = UDim.new(0, 8)
+    flyBtn.TouchTap:Connect(function() local state = toggleFly(); flyBtn.Text = "🦅 Fly: " .. (state and "ON" or "OFF") end)
+
+    -- Velocidad con botones + y -
+    local speedLabel = Instance.new("TextLabel", othersContent)
+    speedLabel.Size = UDim2.new(0.4, 0, 0, 30)
+    speedLabel.Position = UDim2.new(0.05, 0, 0.14, 0)
+    speedLabel.Text = "🚀 Velocidad: 40"
+    speedLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    speedLabel.TextScaled = true
+    speedLabel.BackgroundTransparency = 1
+
+    local function updateSpeedLabel()
+        speedLabel.Text = "🚀 Velocidad: " .. flySpeed
+    end
+
+    local speedMinus = Instance.new("TextButton", othersContent)
+    speedMinus.Size = UDim2.new(0.1, 0, 0, 30)
+    speedMinus.Position = UDim2.new(0.5, 0, 0.14, 0)
+    speedMinus.Text = "-5"
+    speedMinus.TextScaled = true
+    speedMinus.BackgroundColor3 = Color3.fromRGB(80, 80, 120)
+    local c15 = Instance.new("UICorner", speedMinus)
+    c15.CornerRadius = UDim.new(0, 6)
+    speedMinus.TouchTap:Connect(function() flySpeed = math.max(20, flySpeed - 5); updateSpeedLabel() end)
+
+    local speedPlus = Instance.new("TextButton", othersContent)
+    speedPlus.Size = UDim2.new(0.1, 0, 0, 30)
+    speedPlus.Position = UDim2.new(0.65, 0, 0.14, 0)
+    speedPlus.Text = "+5"
+    speedPlus.TextScaled = true
+    speedPlus.BackgroundColor3 = Color3.fromRGB(80, 80, 120)
+    local c16 = Instance.new("UICorner", speedPlus)
+    c16.CornerRadius = UDim.new(0, 6)
+    speedPlus.TouchTap:Connect(function() flySpeed = math.min(100, flySpeed + 5); updateSpeedLabel() end)
+    updateSpeedLabel()
+
+    -- Infinite Jump
+    local jumpBtn = Instance.new("TextButton", othersContent)
+    jumpBtn.Size = UDim2.new(0.9, 0, 0, 40)
+    jumpBtn.Position = UDim2.new(0.05, 0, 0.2, 0)
+    jumpBtn.Text = "🦘 Infinite Jump: OFF"
+    jumpBtn.TextScaled = true
+    jumpBtn.BackgroundColor3 = Color3.fromRGB(50, 70, 100)
+    local c17 = Instance.new("UICorner", jumpBtn)
+    c17.CornerRadius = UDim.new(0, 8)
+    jumpBtn.TouchTap:Connect(function() local state = toggleInfiniteJump(); jumpBtn.Text = "🦘 Infinite Jump: " .. (state and "ON" or "OFF") end)
+
+    -- Time
+    local timeBtn = Instance.new("TextButton", othersContent)
+    timeBtn.Size = UDim2.new(0.9, 0, 0, 40)
+    timeBtn.Position = UDim2.new(0.05, 0, 0.28, 0)
+    timeBtn.Text = "🕐 Time: ON"
+    timeBtn.TextScaled = true
+    timeBtn.BackgroundColor3 = Color3.fromRGB(50, 70, 100)
+    local c18 = Instance.new("UICorner", timeBtn)
+    c18.CornerRadius = UDim.new(0, 8)
+    timeBtn.TouchTap:Connect(function() local state = toggleTime(); timeBtn.Text = "🕐 Time: " .. (state and "ON" or "OFF") end)
+
+    -- Anti-Staff
+    local staffBtn = Instance.new("TextButton", othersContent)
+    staffBtn.Size = UDim2.new(0.9, 0, 0, 40)
+    staffBtn.Position = UDim2.new(0.05, 0, 0.36, 0)
+    staffBtn.Text = "🛡️ Anti-Staff: ON"
+    staffBtn.TextScaled = true
+    staffBtn.BackgroundColor3 = Color3.fromRGB(50, 70, 100)
+    local c19 = Instance.new("UICorner", staffBtn)
+    c19.CornerRadius = UDim.new(0, 8)
+    staffBtn.TouchTap:Connect(function() local state = toggleAntiStaff(); staffBtn.Text = "🛡️ Anti-Staff: " .. (state and "ON" or "OFF") end)
+
+    -- Anti-AFK
+    local afkBtn = Instance.new("TextButton", othersContent)
+    afkBtn.Size = UDim2.new(0.9, 0, 0, 40)
+    afkBtn.Position = UDim2.new(0.05, 0, 0.44, 0)
+    afkBtn.Text = "💤 Anti-AFK: ON"
+    afkBtn.TextScaled = true
+    afkBtn.BackgroundColor3 = Color3.fromRGB(50, 70, 100)
+    local c20 = Instance.new("UICorner", afkBtn)
+    c20.CornerRadius = UDim.new(0, 8)
+    afkBtn.TouchTap:Connect(function() local state = toggleAntiAFK(); afkBtn.Text = "💤 Anti-AFK: " .. (state and "ON" or "OFF") end)
+
+    -- ====== PESTAÑA 5: SETTINGS ======
+    local settingsContent = Instance.new("Frame", contentFrame)
+    settingsContent.Size = UDim2.new(1, 0, 1, 0)
+    settingsContent.BackgroundTransparency = 1
+    settingsContent.Visible = false
+
+    local l8 = Instance.new("TextLabel", settingsContent)
+    l8.Size = UDim2.new(0.9, 0, 0, 30)
+    l8.Position = UDim2.new(0.05, 0, 0, 0)
+    l8.Text = "⚙️ CONFIGURACIÓN"
+    l8.TextColor3 = Color3.fromRGB(200, 200, 200)
+    l8.TextScaled = true
+    l8.BackgroundTransparency = 1
+
+    local moneyBtn = Instance.new("TextButton", settingsContent)
+    moneyBtn.Size = UDim2.new(0.9, 0, 0, 40)
+    moneyBtn.Position = UDim2.new(0.05, 0, 0.06, 0)
+    moneyBtn.Text = "💰 Actualizar dinero"
+    moneyBtn.TextScaled = true
+    moneyBtn.BackgroundColor3 = Color3.fromRGB(50, 70, 100)
+    local c21 = Instance.new("UICorner", moneyBtn)
+    c21.CornerRadius = UDim.new(0, 8)
+    moneyBtn.TouchTap:Connect(function() local money = getPlayerMoney(); notify("💰 $" .. money) end)
+
+    local logsBtn = Instance.new("TextButton", settingsContent)
+    logsBtn.Size = UDim2.new(0.9, 0, 0, 40)
+    logsBtn.Position = UDim2.new(0.05, 0, 0.14, 0)
+    logsBtn.Text = "📜 Ver Logs de hoy"
+    logsBtn.TextScaled = true
+    logsBtn.BackgroundColor3 = Color3.fromRGB(50, 70, 100)
+    local c22 = Instance.new("UICorner", logsBtn)
+    c22.CornerRadius = UDim.new(0, 8)
+    logsBtn.TouchTap:Connect(function()
         local date = os.date("%Y-%m-%d")
         local logFile = logsFolder .. "/log_" .. date .. ".txt"
         if isfile(logFile) then
@@ -1378,61 +1378,78 @@ settingsTab:Button({
         else
             notify("📄 No hay logs hoy")
         end
-    end,
-})
+    end)
 
-settingsTab:Button({
-    Title = "🔄 Recargar script",
-    Callback = function()
+    local reloadBtn = Instance.new("TextButton", settingsContent)
+    reloadBtn.Size = UDim2.new(0.9, 0, 0, 40)
+    reloadBtn.Position = UDim2.new(0.05, 0, 0.22, 0)
+    reloadBtn.Text = "🔄 Recargar script"
+    reloadBtn.TextScaled = true
+    reloadBtn.BackgroundColor3 = Color3.fromRGB(200, 150, 50)
+    local c23 = Instance.new("UICorner", reloadBtn)
+    c23.CornerRadius = UDim.new(0, 8)
+    reloadBtn.TouchTap:Connect(function()
         notify("🔄 Recargando...")
         task.wait(1)
         loadstring(game:HttpGet("https://raw.githubusercontent.com/orvehack/Refinery-Caves-2-Script/main/Refinery-Caves-2-SCRIPT.lua"))()
-    end,
-})
+    end)
 
--- 22. BOTÓN FLOTANTE MOVIBLE (SIEMPRE)
-local function makeFloatingButtonMovable()
-    local openButton = window.OpenButton
-    if openButton then
-        local inputService = game:GetService("UserInputService")
-        local dragging = false
-        local dragStart, startPos
-
-        openButton.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.Touch then
-                dragging = true
-                dragStart = input.Position
-                startPos = openButton.Position
-            end
-        end)
-
-        openButton.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.Touch then
-                dragging = false
-            end
-        end)
-
-        inputService.InputChanged:Connect(function(input)
-            if dragging and input.UserInputType == Enum.UserInputType.Touch then
-                local delta = input.Position - dragStart
-                openButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-            end
-        end)
+    -- ====== CAMBIO DE PESTAÑAS ======
+    local function switchTab(tab, content)
+        for _, t in ipairs(tabs) do
+            t.BackgroundColor3 = Color3.fromRGB(50, 55, 75)
+        end
+        tab.BackgroundColor3 = Color3.fromRGB(80, 80, 120)
+        farmContent.Visible = (content == farmContent)
+        missionsContent.Visible = (content == missionsContent)
+        teleContent.Visible = (content == teleContent)
+        othersContent.Visible = (content == othersContent)
+        settingsContent.Visible = (content == settingsContent)
     end
+
+    local tab1 = createTab("🌱 Farm", farmContent)
+    local tab2 = createTab("📜 Missions", missionsContent)
+    local tab3 = createTab("📍 Teleports", teleContent)
+    local tab4 = createTab("⚙️ Others", othersContent)
+    local tab5 = createTab("🔧 Settings", settingsContent)
+
+    tab1.TouchTap:Connect(function() switchTab(tab1, farmContent) end)
+    tab2.TouchTap:Connect(function() switchTab(tab2, missionsContent); refreshMissions() end)
+    tab3.TouchTap:Connect(function() switchTab(tab3, teleContent); refreshCustomTeleports() end)
+    tab4.TouchTap:Connect(function() switchTab(tab4, othersContent) end)
+    tab5.TouchTap:Connect(function() switchTab(tab5, settingsContent) end)
+
+    refreshOreList()
+    refreshTreeList()
+    refreshMissions()
+    refreshCustomTeleports()
+
+    local closeBtn = Instance.new("TextButton", frame)
+    closeBtn.Size = UDim2.new(0, 40, 0, 40)
+    closeBtn.Position = UDim2.new(1, -45, 0, 5)
+    closeBtn.Text = "✕"
+    closeBtn.TextScaled = true
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeBtn.BackgroundTransparency = 0.3
+    local cornerClose = Instance.new("UICorner", closeBtn)
+    cornerClose.CornerRadius = UDim.new(0, 8)
+    closeBtn.TouchTap:Connect(function() sg.Enabled = false; notify("GUI cerrada", 2) end)
+
+    return sg
 end
 
--- 23. INICIALIZACIÓN
-notify("🚀 RC2 DEFINITIVO cargado correctamente", 4)
-writeLog("Script cargado correctamente")
+-- 20. INICIALIZACIÓN
+local success, err = pcall(function()
+    createFloatingButton()
+    notify("🚀 RC2 DEFINITIVO cargado correctamente", 4)
+    writeLog("Script cargado correctamente")
+end)
 
--- Inicializar listas
-task.wait(1)
-createOreButtons()
-createTreeButtons()
-refreshMissions()
-refreshCustomTeleports()
-makeFloatingButtonMovable()
+if not success then
+    notify("❌ Error al cargar: " .. tostring(err), 5)
+    writeLog("Error de carga: " .. tostring(err), true)
+end
 
 print("✅ RC2 DEFINITIVO cargado")
 print("📁 Carpeta: " .. folder)
-print("🟢 Usa el botón flotante para abrir la GUI")
+print("🟢 Toca el botón flotante para abrir la GUI")
