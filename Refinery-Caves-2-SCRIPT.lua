@@ -1,12 +1,8 @@
 -- ============================================================
--- RC2 LITE - VERSIÓN ESTABLE PARA DELTA
+-- RC2 STABLE - VERSIÓN QUE FUNCIONA EN DELTA
 -- ============================================================
 
--- 1. CONFIGURACIÓN DE CARPETAS
-local folder = "rc2_data"
-if not isfolder(folder) then makefolder(folder) end
-
--- 2. NOTIFICACIONES SIMPLES Y BONITAS
+-- 1. FUNCIÓN DE NOTIFICACIÓN (CON ESTILO)
 local function notify(text, duration)
     duration = duration or 3
     local sg = Instance.new("ScreenGui", gethui())
@@ -16,7 +12,6 @@ local function notify(text, duration)
     frame.Size = UDim2.new(0.8, 0, 0, 50)
     frame.Position = UDim2.new(0.1, 0, 0.8, 0)
     frame.BackgroundColor3 = Color3.fromRGB(20, 25, 40)
-    frame.BackgroundTransparency = 0.1
     local corner = Instance.new("UICorner", frame)
     corner.CornerRadius = UDim.new(0, 12)
     local label = Instance.new("TextLabel", frame)
@@ -32,7 +27,7 @@ local function notify(text, duration)
     end)
 end
 
--- 3. BOTÓN FLOTANTE (MOVIBLE Y CON ESTILO)
+-- 2. CREAR BOTÓN FLOTANTE (USANDO UserInputService)
 local function createFloatingButton()
     local sg = Instance.new("ScreenGui", gethui())
     sg.Name = "FloatingBtn"
@@ -41,37 +36,60 @@ local function createFloatingButton()
     local btn = Instance.new("ImageButton", sg)
     btn.Size = UDim2.new(0, 60, 0, 60)
     btn.Position = UDim2.new(0.85, 0, 0.85, 0)
-    btn.Image = "rbxassetid://6031091779" -- Icono de engranaje bonito
+    btn.Image = "rbxassetid://6031091779"
     btn.BackgroundColor3 = Color3.fromRGB(30, 40, 60)
     btn.BackgroundTransparency = 0.1
     local corner = Instance.new("UICorner", btn)
     corner.CornerRadius = UDim.new(1, 0)
 
-    -- Hacer el botón arrastrable (táctil)
+    -- Variables para arrastre
     local dragging = false
     local dragStart, startPos
-    btn.TouchBegan:Connect(function(input)
+    local inputService = game:GetService("UserInputService")
+
+    -- ARRASTRE: Usando UserInputService (FUNCIONA EN DELTA)
+    btn.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = btn.Position
         end
     end)
-    btn.TouchMoved:Connect(function(input)
-        if dragging then
+
+    btn.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+
+    inputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.Touch then
             local delta = input.Position - dragStart
             btn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
-    btn.TouchEnded:Connect(function() dragging = false end)
 
-    -- Al presionar, abrir la GUI (si no está abierta)
+    -- ABRIR GUI: Usando TouchTap o MouseButton1Click
     local mainGui = nil
     local guiOpen = false
 
+    btn.MouseButton1Click:Connect(function()
+        if not mainGui then
+            mainGui = createMainGUI()
+        end
+        guiOpen = not guiOpen
+        mainGui.Enabled = guiOpen
+        if guiOpen then
+            notify("📂 GUI abierta", 2)
+        else
+            notify("📂 GUI cerrada", 2)
+        end
+    end)
+
+    -- También para táctil
     btn.TouchTap:Connect(function()
         if not mainGui then
-            mainGui = createMainGUI(btn)
+            mainGui = createMainGUI()
         end
         guiOpen = not guiOpen
         mainGui.Enabled = guiOpen
@@ -85,14 +103,14 @@ local function createFloatingButton()
     return sg
 end
 
--- 4. GUI PRINCIPAL (SENCILLA, CON PESTAÑAS)
-local function createMainGUI(floatingBtn)
+-- 3. GUI PRINCIPAL
+local function createMainGUI()
     local sg = Instance.new("ScreenGui", gethui())
     sg.Name = "MainGUI"
     sg.ResetOnSpawn = false
     sg.Enabled = false
 
-    -- Fondo semi-transparente
+    -- Fondo
     local backdrop = Instance.new("Frame", sg)
     backdrop.Size = UDim2.new(1, 0, 1, 0)
     backdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -103,10 +121,10 @@ local function createMainGUI(floatingBtn)
         notify("GUI cerrada", 2)
     end)
 
-    -- Ventana principal
+    -- Ventana
     local frame = Instance.new("Frame", sg)
-    frame.Size = UDim2.new(0.9, 0, 0.8, 0)
-    frame.Position = UDim2.new(0.05, 0, 0.1, 0)
+    frame.Size = UDim2.new(0.9, 0, 0.7, 0)
+    frame.Position = UDim2.new(0.05, 0, 0.15, 0)
     frame.BackgroundColor3 = Color3.fromRGB(20, 22, 35)
     frame.BackgroundTransparency = 0.1
     local corner = Instance.new("UICorner", frame)
@@ -115,107 +133,63 @@ local function createMainGUI(floatingBtn)
     -- Título
     local title = Instance.new("TextLabel", frame)
     title.Size = UDim2.new(1, 0, 0, 40)
-    title.Text = "⚙️ RC2 LITE"
+    title.Text = "⚙️ RC2 STABLE"
     title.TextColor3 = Color3.fromRGB(255, 200, 80)
     title.TextScaled = true
     title.Font = Enum.Font.GothamBold
     title.BackgroundTransparency = 1
 
-    -- Pestañas
-    local tabFrame = Instance.new("Frame", frame)
-    tabFrame.Size = UDim2.new(1, 0, 0, 40)
-    tabFrame.Position = UDim2.new(0, 0, 0, 45)
-    tabFrame.BackgroundTransparency = 1
-
-    local tabs = {}
-    local contents = {}
-
-    local function createTab(name, content)
-        local btn = Instance.new("TextButton", tabFrame)
-        btn.Size = UDim2.new(0.33, 0, 1, 0)
-        btn.Position = UDim2.new(#tabs * 0.33, 0, 0, 0)
-        btn.Text = name
-        btn.TextScaled = true
-        btn.BackgroundColor3 = Color3.fromRGB(50, 55, 75)
-        btn.BackgroundTransparency = 0.2
-        local corner = Instance.new("UICorner", btn)
-        corner.CornerRadius = UDim.new(0, 8)
-        table.insert(tabs, btn)
-        return btn
-    end
-
-    -- Contenido
-    local contentFrame = Instance.new("ScrollingFrame", frame)
-    contentFrame.Size = UDim2.new(1, 0, 1, -100)
-    contentFrame.Position = UDim2.new(0, 0, 0, 90)
-    contentFrame.BackgroundTransparency = 1
-    contentFrame.CanvasSize = UDim2.new(0, 0, 0, 300)
-    contentFrame.ScrollBarThickness = 6
-
-    -- Pestaña 1: Información
-    local infoContent = Instance.new("Frame", contentFrame)
-    infoContent.Size = UDim2.new(1, 0, 1, 0)
-    infoContent.BackgroundTransparency = 1
-    infoContent.Visible = true
-
-    local infoLabel = Instance.new("TextLabel", infoContent)
-    infoLabel.Size = UDim2.new(0.9, 0, 0, 30)
-    infoLabel.Position = UDim2.new(0.05, 0, 0.05, 0)
-    infoLabel.Text = "🔍 Script cargado correctamente"
+    -- Info
+    local infoLabel = Instance.new("TextLabel", frame)
+    infoLabel.Size = UDim2.new(0.9, 0, 0, 40)
+    infoLabel.Position = UDim2.new(0.05, 0, 0.15, 0)
+    infoLabel.Text = "✅ Script cargado correctamente"
     infoLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
     infoLabel.TextScaled = true
     infoLabel.BackgroundTransparency = 1
 
-    local infoLabel2 = Instance.new("TextLabel", infoContent)
-    infoLabel2.Size = UDim2.new(0.9, 0, 0, 30)
-    infoLabel2.Position = UDim2.new(0.05, 0, 0.15, 0)
-    infoLabel2.Text = "📁 Carpeta: " .. folder
+    local infoLabel2 = Instance.new("TextLabel", frame)
+    infoLabel2.Size = UDim2.new(0.9, 0, 0, 40)
+    infoLabel2.Position = UDim2.new(0.05, 0, 0.3, 0)
+    infoLabel2.Text = "📁 Datos guardados en: rc2_data"
     infoLabel2.TextColor3 = Color3.fromRGB(150, 150, 150)
     infoLabel2.TextScaled = true
     infoLabel2.BackgroundTransparency = 1
 
-    local infoLabel3 = Instance.new("TextLabel", infoContent)
-    infoLabel3.Size = UDim2.new(0.9, 0, 0, 30)
-    infoLabel3.Position = UDim2.new(0.05, 0, 0.25, 0)
-    infoLabel3.Text = "🕐 Hora del juego: " .. tostring(game:GetService("Lighting").TimeOfDay or "desconocida")
-    infoLabel3.TextColor3 = Color3.fromRGB(150, 150, 150)
-    infoLabel3.TextScaled = true
-    infoLabel3.BackgroundTransparency = 1
-
-    -- Pestaña 2: Acciones rápidas
-    local actionsContent = Instance.new("Frame", contentFrame)
-    actionsContent.Size = UDim2.new(1, 0, 1, 0)
-    actionsContent.BackgroundTransparency = 1
-    actionsContent.Visible = false
-
-    local function createActionButton(text, color, callback)
-        local btn = Instance.new("TextButton", actionsContent)
-        btn.Size = UDim2.new(0.8, 0, 0, 45)
-        btn.Position = UDim2.new(0.1, 0, #actionsContent:GetChildren() * 0.06 + 0.05, 0)
-        btn.Text = text
-        btn.TextScaled = true
-        btn.BackgroundColor3 = color or Color3.fromRGB(50, 70, 100)
-        local corner = Instance.new("UICorner", btn)
-        corner.CornerRadius = UDim.new(0, 10)
-        btn.TouchTap:Connect(callback)
-        return btn
-    end
-
-    createActionButton("📌 Guardar ubicación", Color3.fromRGB(0, 150, 100), function()
+    -- Botón de acción: Guardar ubicación
+    local saveBtn = Instance.new("TextButton", frame)
+    saveBtn.Size = UDim2.new(0.4, 0, 0, 45)
+    saveBtn.Position = UDim2.new(0.05, 0, 0.5, 0)
+    saveBtn.Text = "💾 Guardar ubicación"
+    saveBtn.TextScaled = true
+    saveBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+    local cornerBtn = Instance.new("UICorner", saveBtn)
+    cornerBtn.CornerRadius = UDim.new(0, 10)
+    saveBtn.TouchTap:Connect(function()
         local char = game:GetService("Players").LocalPlayer.Character
         if char and char:FindFirstChild("HumanoidRootPart") then
             local pos = char.HumanoidRootPart.Position
             local data = {position = {pos.X, pos.Y, pos.Z}, time = os.date("%H:%M:%S")}
             local json = game:GetService("HttpService"):JSONEncode(data)
-            writefile(folder .. "/last_pos.json", json)
+            if not isfolder("rc2_data") then makefolder("rc2_data") end
+            writefile("rc2_data/last_pos.json", json)
             notify("📍 Ubicación guardada", 2)
         else
             notify("❌ Personaje no encontrado", 2)
         end
     end)
 
-    createActionButton("📍 Ir a última ubicación", Color3.fromRGB(0, 120, 200), function()
-        local file = folder .. "/last_pos.json"
+    -- Botón de acción: Ir a ubicación guardada
+    local goBtn = Instance.new("TextButton", frame)
+    goBtn.Size = UDim2.new(0.4, 0, 0, 45)
+    goBtn.Position = UDim2.new(0.55, 0, 0.5, 0)
+    goBtn.Text = "📍 Ir a ubicación"
+    goBtn.TextScaled = true
+    goBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
+    local cornerBtn2 = Instance.new("UICorner", goBtn)
+    cornerBtn2.CornerRadius = UDim.new(0, 10)
+    goBtn.TouchTap:Connect(function()
+        local file = "rc2_data/last_pos.json"
         if isfile(file) then
             local json = readfile(file)
             local data = game:GetService("HttpService"):JSONDecode(json)
@@ -241,29 +215,7 @@ local function createMainGUI(floatingBtn)
         end
     end)
 
-    createActionButton("🔄 Recargar script", Color3.fromRGB(200, 150, 50), function()
-        notify("🔄 Recargando...", 2)
-        task.wait(0.5)
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/orvehack/Refinery-Caves-2-Script/main/RC2_Lite.lua"))()
-    end)
-
-    -- Cambio de pestañas
-    local function switchTab(tab, content)
-        for _, t in ipairs(tabs) do
-            t.BackgroundColor3 = Color3.fromRGB(50, 55, 75)
-        end
-        tab.BackgroundColor3 = Color3.fromRGB(80, 80, 120)
-        infoContent.Visible = (content == infoContent)
-        actionsContent.Visible = (content == actionsContent)
-    end
-
-    local tab1 = createTab("Info", infoContent)
-    local tab2 = createTab("Acciones", actionsContent)
-
-    tab1.TouchTap:Connect(function() switchTab(tab1, infoContent) end)
-    tab2.TouchTap:Connect(function() switchTab(tab2, actionsContent) end)
-
-    -- Cerrar la GUI con el botón X
+    -- Botón cerrar
     local closeBtn = Instance.new("TextButton", frame)
     closeBtn.Size = UDim2.new(0, 40, 0, 40)
     closeBtn.Position = UDim2.new(1, -45, 0, 5)
@@ -281,10 +233,9 @@ local function createMainGUI(floatingBtn)
     return sg
 end
 
--- 5. INICIALIZACIÓN
-notify("🚀 RC2 LITE cargado", 3)
+-- 4. INICIALIZACIÓN
+notify("🚀 RC2 STABLE cargado", 3)
 createFloatingButton()
-notify("📌 Toca el engranaje para abrir la GUI", 3)
+notify("📌 Toca el botón flotante", 3)
 
-print("✅ RC2 LITE cargado correctamente")
-print("📁 Carpeta: " .. folder)
+print("✅ RC2 STABLE cargado correctamente")
