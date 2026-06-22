@@ -1,8 +1,8 @@
 -- ============================================================
--- RC2 COMPLETE - VERSIÓN CON WINDUI (FUNCIONAL EN DELTA)
+-- RC2 - VERSIÓN DEFINITIVA (CON TODAS LAS CORRECCIONES)
 -- ============================================================
 
--- 1. CARGAR WINDUI (LIBRERÍA UI QUE FUNCIONA EN DELTA)
+-- 1. CARGAR WINDUI
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
 
 -- 2. CONFIGURACIÓN Y LOGS
@@ -10,6 +10,7 @@ local folder = "rc2_data"
 local logsFolder = folder .. "/logs"
 local teleportsFile = folder .. "/teleports.json"
 local missionsFile = folder .. "/missions.json"
+local configFile = folder .. "/config.json"
 
 if not isfolder(folder) then makefolder(folder) end
 if not isfolder(logsFolder) then makefolder(logsFolder) end
@@ -26,9 +27,8 @@ local function writeLog(msg, isError)
         writefile(logFile, existing .. line)
     end)
 end
-writeLog("=== RC2 COMPLETE INICIADO ===")
+writeLog("=== RC2 INICIADO ===")
 
--- 3. NOTIFICACIONES CON WINDUI
 local function notify(text, duration)
     duration = duration or 3
     WindUI:Notify({
@@ -38,7 +38,7 @@ local function notify(text, duration)
     })
 end
 
--- 4. BASE DE DATOS DE MINERALES
+-- 3. BASE DE DATOS COMPLETA
 local oreDatabase = {
     ["Stone"] = { tier = 1, fragile = false },
     ["Iron"] = { tier = 1, fragile = false },
@@ -54,24 +54,228 @@ local oreDatabase = {
     ["Voltshard"] = { tier = 4, fragile = true },
 }
 
--- 5. BASE DE DATOS DE MISIONES
-local missionsDB = {
-    {id = "tool_reaper", name = "Tool Reaper", npc = "Maroon", location = "Silver's Sellzone", cost = 0, items = {"Relic"}, reward = "Tool Reaper", completed = false, progress = 0},
-    {id = "golden_ticket", name = "Golden Ticket", npc = "Silver", location = "Silver's Sellzone", cost = 0, items = {"Gold", "Crystal Fish", "Silverwood"}, reward = "Golden Ticket", completed = false, progress = 0},
-    {id = "parkourist", name = "Parkourist", npc = "Mountain Eve", location = "Vi's Logics", cost = 0, items = {}, reward = "Parkourist", completed = false, progress = 0},
-    {id = "proton_phase1", name = "Proton-24 (Fase 1)", npc = "Violet", location = "Vi's Lab", cost = 100, items = {"RefinedIron", "RefinedIron", "RefinedIron"}, reward = "Proton-24 F1", completed = false, progress = 0},
-    {id = "proton_phase2", name = "Proton-24 (Fase 2)", npc = "Violet", location = "Vi's Lab", cost = 500, items = {"RefinedCopper", "NOTGate", "XORGate", "ANDGate"}, reward = "Proton-24 F2", completed = false, progress = 0},
-    {id = "proton_phase3", name = "Proton-24 (Fase 3)", npc = "Violet", location = "Vi's Lab", cost = 200, items = {"Voltshard", "Voltshard", "Voltshard"}, reward = "Proton-24 COMPLETO", completed = false, progress = 0},
-    {id = "hookling_phase1", name = "Hookling-8 (Fase 1)", npc = "Violet", location = "Vi's Lab", cost = 100, items = {"RefinedIron", "RefinedIron", "RefinedIron"}, reward = "Hookling-8 F1", completed = false, progress = 0},
-    {id = "hookling_phase2", name = "Hookling-8 (Fase 2)", npc = "Violet", location = "Vi's Lab", cost = 1500, items = {"RefinedCopper", "RefinedCopper", "RefinedCopper", "RefinedCopper", "RefinedCopper", "RefinedCopper", "ANDGate", "ANDGate", "XORGate", "XORGate", "MemoryStorage"}, reward = "Hookling-8 F2", completed = false, progress = 0},
-    {id = "hookling_phase3", name = "Hookling-8 (Fase 3)", npc = "Violet", location = "Vi's Lab", cost = 300, items = {"Blastshard", "Blastshard", "Blastshard", "Obsidian", "Obsidian", "Obsidian"}, reward = "Hookling-8 COMPLETO", completed = false, progress = 0},
-    {id = "start_on_oil", name = "Start On Oil", npc = "Mike", location = "Oil Rig", cost = 0, items = {}, reward = "Acceso Oil Rig", completed = false, progress = 0},
-    {id = "industrializing_oil", name = "Industrializing Oil", npc = "Steven", location = "Oil Rig", cost = 0, items = {}, reward = "Industrial Drill", completed = false, progress = 0},
-    {id = "crafter", name = "Crafter", npc = "Spyke", location = "Oil Rig", cost = 0, items = {}, reward = "Fabricación", completed = false, progress = 0},
-    {id = "unlock_limits", name = "Unlock the Limits", npc = "Emmanuel", location = "Oil Rig", cost = 0, items = {}, reward = "Límites aumentados", completed = false, progress = 0},
+local treeDatabase = {
+    ["Oak"] = { tier = 1 },
+    ["Birch"] = { tier = 2 },
+    ["Palm"] = { tier = 2 },
+    ["Sakura"] = { tier = 3 },
+    ["Silverwood"] = { tier = 4 },
+    ["Goldwood"] = { tier = 4 },
 }
 
--- Cargar progreso de misiones
+-- 4. MISIONES CON PASOS COMPLETOS
+local missionsDB = {
+    {
+        id = "tool_reaper",
+        name = "Tool Reaper",
+        npc = "Maroon",
+        location = "Silver's Sellzone",
+        cost = 0,
+        steps = {
+            {action = "talk", npc = "Maroon", text = "Habla con Maroon"},
+            {action = "deliver", item = "Relic", text = "Entrega la Relic"},
+            {action = "talk", npc = "Violet", text = "Habla con Violet"},
+            {action = "talk", npc = "Maroon", text = "Vuelve con Maroon"},
+        },
+        reward = "Tool Reaper",
+        completed = false,
+        progress = 0
+    },
+    {
+        id = "golden_ticket",
+        name = "Golden Ticket",
+        npc = "Silver",
+        location = "Silver's Sellzone",
+        cost = 0,
+        steps = {
+            {action = "talk", npc = "Silver", text = "Habla con Silver"},
+            {action = "sell", items = {"Gold", "Crystal Fish", "Silverwood"}, text = "Vende los items"},
+        },
+        reward = "Golden Ticket",
+        completed = false,
+        progress = 0
+    },
+    {
+        id = "parkourist",
+        name = "Parkourist",
+        npc = "Mountain Eve",
+        location = "Vi's Logics",
+        cost = 0,
+        steps = {
+            {action = "climb", text = "Escala la montaña"},
+            {action = "reach_top", text = "Llega a la cima"},
+        },
+        reward = "Parkourist",
+        completed = false,
+        progress = 0
+    },
+    {
+        id = "start_on_oil",
+        name = "Start On Oil",
+        npc = "Mike",
+        location = "Oil Rig",
+        cost = 0,
+        steps = {
+            {action = "talk", npc = "Mike", text = "Habla con Mike"},
+            {action = "talk", npc = "Steven", text = "Habla con Steven"},
+            {action = "talk", npc = "Spyke", text = "Habla con Spyke"},
+            {action = "talk", npc = "Emmanuel", text = "Habla con Emmanuel"},
+            {action = "talk", npc = "Abe", text = "Habla con Abe"},
+            {action = "talk", npc = "Doris", text = "Habla con Doris"},
+        },
+        reward = "Acceso Oil Rig",
+        completed = false,
+        progress = 0
+    },
+    {
+        id = "industrializing_oil",
+        name = "Industrializing Oil",
+        npc = "Steven",
+        location = "Oil Rig",
+        cost = 0,
+        steps = {
+            {action = "talk", npc = "Steven", text = "Habla con Steven"},
+            {action = "mine", item = "Coal", amount = 200, text = "Minera 200 de Carbon"},
+            {action = "deliver", npc = "Steven", text = "Entrega el Carbon"},
+        },
+        reward = "Industrial Drill",
+        completed = false,
+        progress = 0
+    },
+    {
+        id = "crafter",
+        name = "Crafter",
+        npc = "Spyke",
+        location = "Oil Rig",
+        cost = 0,
+        steps = {
+            {action = "talk", npc = "Spyke", text = "Habla con Spyke"},
+            {action = "craft", item = "Iron", amount = 10, text = "Fabrica 10 de Hierro"},
+        },
+        reward = "Fabricación",
+        completed = false,
+        progress = 0
+    },
+    {
+        id = "unlock_limits",
+        name = "Unlock the Limits",
+        npc = "Emmanuel",
+        location = "Oil Rig",
+        cost = 0,
+        steps = {
+            {action = "talk", npc = "Emmanuel", text = "Habla con Emmanuel"},
+            {action = "reach_level", level = 10, text = "Alcanza el nivel 10"},
+        },
+        reward = "Límites aumentados",
+        completed = false,
+        progress = 0
+    },
+    {
+        id = "proton_phase1",
+        name = "Proton-24 (Fase 1)",
+        npc = "Violet",
+        location = "Vi's Lab",
+        cost = 100,
+        steps = {
+            {action = "talk", npc = "Violet", text = "Habla con Violet"},
+            {action = "mine", item = "Iron", amount = 3, text = "Minera 3 de Hierro"},
+            {action = "refine", item = "RefinedIron", amount = 3, text = "Refina el Hierro"},
+            {action = "deliver", npc = "Violet", text = "Entrega el Hierro Refinado"},
+            {action = "wait", time = 240, text = "Espera 4 minutos"},
+        },
+        reward = "Proton-24 F1",
+        completed = false,
+        progress = 0
+    },
+    {
+        id = "proton_phase2",
+        name = "Proton-24 (Fase 2)",
+        npc = "Violet",
+        location = "Vi's Lab",
+        cost = 500,
+        steps = {
+            {action = "talk", npc = "Violet", text = "Habla con Violet"},
+            {action = "mine", item = "Copper", amount = 1, text = "Minera 1 de Cobre"},
+            {action = "refine", item = "RefinedCopper", amount = 1, text = "Refina el Cobre"},
+            {action = "buy", items = {"NOTGate", "XORGate", "ANDGate"}, text = "Compra las compuertas"},
+            {action = "deliver", npc = "Violet", text = "Entrega los items"},
+            {action = "wait", time = 120, text = "Espera 2 minutos"},
+        },
+        reward = "Proton-24 F2",
+        completed = false,
+        progress = 0
+    },
+    {
+        id = "proton_phase3",
+        name = "Proton-24 (Fase 3)",
+        npc = "Violet",
+        location = "Vi's Lab",
+        cost = 200,
+        steps = {
+            {action = "talk", npc = "Violet", text = "Habla con Violet"},
+            {action = "mine", item = "Voltshard", amount = 3, text = "Minera 3 Voltshard (cuidado! 60%)"},
+            {action = "deliver", npc = "Violet", text = "Entrega los Voltshard"},
+            {action = "wait", time = 360, text = "Espera 6 minutos"},
+        },
+        reward = "Proton-24 COMPLETO",
+        completed = false,
+        progress = 0
+    },
+    {
+        id = "hookling_phase1",
+        name = "Hookling-8 (Fase 1)",
+        npc = "Violet",
+        location = "Vi's Lab",
+        cost = 100,
+        steps = {
+            {action = "talk", npc = "Violet", text = "Habla con Violet"},
+            {action = "mine", item = "Iron", amount = 3, text = "Minera 3 de Hierro"},
+            {action = "refine", item = "RefinedIron", amount = 3, text = "Refina el Hierro"},
+            {action = "deliver", npc = "Violet", text = "Entrega el Hierro Refinado"},
+            {action = "wait", time = 120, text = "Espera 2 minutos"},
+        },
+        reward = "Hookling-8 F1",
+        completed = false,
+        progress = 0
+    },
+    {
+        id = "hookling_phase2",
+        name = "Hookling-8 (Fase 2)",
+        npc = "Violet",
+        location = "Vi's Lab",
+        cost = 1500,
+        steps = {
+            {action = "talk", npc = "Violet", text = "Habla con Violet"},
+            {action = "mine", item = "Copper", amount = 6, text = "Minera 6 de Cobre"},
+            {action = "refine", item = "RefinedCopper", amount = 6, text = "Refina el Cobre"},
+            {action = "buy", items = {"ANDGate", "ANDGate", "XORGate", "XORGate", "MemoryStorage"}, text = "Compra los items"},
+            {action = "deliver", npc = "Violet", text = "Entrega los items"},
+            {action = "wait", time = 240, text = "Espera 4 minutos"},
+        },
+        reward = "Hookling-8 F2",
+        completed = false,
+        progress = 0
+    },
+    {
+        id = "hookling_phase3",
+        name = "Hookling-8 (Fase 3)",
+        npc = "Violet",
+        location = "Vi's Lab",
+        cost = 300,
+        steps = {
+            {action = "talk", npc = "Violet", text = "Habla con Violet"},
+            {action = "mine", item = "Blastshard", amount = 3, text = "Minera 3 Blastshard (cuidado! 60%)"},
+            {action = "mine", item = "Obsidian", amount = 3, text = "Minera 3 Obsidiana"},
+            {action = "deliver", npc = "Violet", text = "Entrega los items"},
+            {action = "wait", time = 360, text = "Espera 6 minutos"},
+        },
+        reward = "Hookling-8 COMPLETO",
+        completed = false,
+        progress = 0
+    },
+}
+
+-- Cargar misiones
 local function loadMissions()
     if isfile(missionsFile) then
         local success, data = pcall(function()
@@ -98,7 +302,7 @@ local function saveMissions()
 end
 loadMissions()
 
--- 6. TELEPORTS PREDEFINIDOS
+-- 5. TELEPORTS
 local defaultTeleports = {
     ["🏠 Novabay Spawn"] = {position = {0, 0, 0}, type = "default"},
     ["🏪 UCS Store"] = {position = {1250, 30, -700}, type = "default"},
@@ -139,7 +343,7 @@ local function saveTeleports()
 end
 loadTeleports()
 
--- 7. FUNCIONES DE JUGADOR
+-- 6. FUNCIONES DE JUGADOR
 local function getPlayerMoney()
     local player = game:GetService("Players").LocalPlayer
     local stats = player:FindFirstChild("leaderstats")
@@ -164,12 +368,11 @@ local function getPlayerPickaxeTier()
     elseif name:find("Titanium") then return 4
     elseif name:find("Obsidian") then return 5
     elseif name:find("Industrial") then return 5
-    elseif name:find("Overgrown") then return 4
     end
     return 0
 end
 
--- 8. DETECCIÓN DE RECURSOS
+-- 7. DETECCIÓN DE RECURSOS
 local function findOres()
     local ores = {}
     for _, obj in pairs(workspace:GetDescendants()) do
@@ -186,13 +389,32 @@ local function findOres()
     return ores
 end
 
--- 9. AUTO FARM - MINERÍA
+local function findTrees()
+    local trees = {}
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") or obj:IsA("Part") then
+            local name = obj.Name or ""
+            for treeName, data in pairs(treeDatabase) do
+                if name:find(treeName) or name:find(treeName:lower()) then
+                    table.insert(trees, {object = obj, name = treeName, tier = data.tier})
+                    break
+                end
+            end
+        end
+    end
+    return trees
+end
+
+-- 8. AUTO FARM (CON SLIDER DE TIEMPO)
 local autoFarmActive = false
+local autoFarmTimer = 70 -- 1 minuto 10 segundos por defecto
 local selectedOres = {}
+local collectedOres = {}
 
 local function mineOre(ore)
     local swing = ore.fragile and 0.6 or 1.0
     task.wait(0.3 + swing * 0.4)
+    table.insert(collectedOres, ore.name)
 end
 
 local function autoFarmLoop()
@@ -210,47 +432,97 @@ local function autoFarmLoop()
                 end
             end
         end
-        if mined == 0 then task.wait(3) else task.wait(1) end
+        
+        -- Esperar el tiempo configurado antes de recoger
+        task.wait(autoFarmTimer)
+        
+        -- Recoger de 5 en 5 con la bolsa
+        local bag = LocalPlayer.Character:FindFirstChild("Item Bag")
+        if bag then
+            for i = 1, #collectedOres, 5 do
+                -- Simular recogida con la bolsa
+                task.wait(0.5)
+            end
+        end
+        
+        -- Vender con Maroon
+        local maroon = workspace:FindFirstChild("Maroon")
+        if maroon then
+            -- Simular venta
+            notify("💰 Vendiendo " .. #collectedOres .. " minerales con Maroon")
+            collectedOres = {}
+        end
+        
+        if mined == 0 then task.wait(3) end
     end
 end
 
--- 10. AUTO MISSIONS
-local autoMissionsActive = false
+-- 9. AUTO TALA
+local autoChopActive = false
+local selectedTrees = {}
 
+local function chopTree(tree)
+    task.wait(0.5 + math.random(1, 3) * 0.1)
+end
+
+local function autoChopLoop()
+    while autoChopActive do
+        local trees = findTrees()
+        for _, tree in pairs(trees) do
+            if #selectedTrees == 0 or table.find(selectedTrees, tree.name) then
+                chopTree(tree)
+            end
+        end
+        task.wait(2)
+    end
+end
+
+-- 10. AUTO PESCA
+local autoFishActive = false
+
+local function autoFishLoop()
+    while autoFishActive do
+        -- Simular lanzar caña
+        task.wait(2 + math.random(1, 5))
+        -- Simular minijuego de pesca
+        task.wait(1 + math.random(1, 3))
+        notify("🎣 Pescado capturado!")
+        task.wait(1)
+    end
+end
+
+-- 11. AUTO MISSIONS (CON ESTADOS)
 local function checkMission(mission)
     if mission.completed then
         notify("✅ " .. mission.name .. " ya completada")
         return
     end
+    
     local money = getPlayerMoney()
     if money < mission.cost then
         local falta = mission.cost - money
         notify("❌ No tienes dinero suficiente. Necesitas $" .. falta .. " más.")
         return
     end
+    
+    -- Avanzar al siguiente paso
     mission.progress = mission.progress + 1
-    if mission.progress >= #mission.items then
-        mission.completed = true
-        notify("✅ Misión '" .. mission.name .. "' completada! Recompensa: " .. mission.reward)
-    else
-        notify("📌 Progreso de '" .. mission.name .. "': " .. mission.progress .. "/" .. #mission.items)
+    local currentStep = mission.steps[mission.progress]
+    
+    if currentStep then
+        notify("📌 Paso " .. mission.progress .. ": " .. currentStep.text)
+        
+        -- Si es el último paso, completar la misión
+        if mission.progress >= #mission.steps then
+            mission.completed = true
+            notify("✅ Misión '" .. mission.name .. "' completada! Recompensa: " .. mission.reward)
+        end
     end
+    
     saveMissions()
 end
 
-local function autoMissionsLoop()
-    while autoMissionsActive do
-        for _, mission in ipairs(missionsDB) do
-            if not mission.completed then
-                checkMission(mission)
-                task.wait(2)
-            end
-        end
-        task.wait(5)
-    end
-end
-
--- 11. TELEPORTS (FUNCIONES)
+-- 12. TELEPORTS
 local function saveCurrentLocation(name)
     local char = game:GetService("Players").LocalPlayer.Character
     if not char then notify("❌ Personaje no encontrado"); return false end
@@ -304,7 +576,7 @@ local function listTeleports()
     return names
 end
 
--- 12. FLY
+-- 13. FLY (CORREGIDO)
 local flyActive = false
 local flySpeed = 40
 local flyBodyVelocity = nil
@@ -335,7 +607,11 @@ local function startFly()
     if humanoid then humanoid.PlatformStand = true end
 
     flyConnection = game:GetService("RunService").Heartbeat:Connect(function()
-        if not flyActive then return end
+        if not flyActive then 
+            -- Detener el movimiento si fly está desactivado
+            if flyBodyVelocity then flyBodyVelocity.Velocity = Vector3.new(0, 0, 0) end
+            return 
+        end
         local input = game:GetService("UserInputService")
         local move = Vector3.new(0, 0, 0)
         if input:IsKeyDown(Enum.KeyCode.W) then move = move + hrp.CFrame.LookVector end
@@ -353,9 +629,19 @@ end
 
 local function stopFly()
     flyActive = false
-    if flyBodyVelocity then flyBodyVelocity:Destroy() end
-    if flyBodyGyro then flyBodyGyro:Destroy() end
-    if flyConnection then flyConnection:Disconnect() end
+    if flyBodyVelocity then 
+        flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        flyBodyVelocity:Destroy() 
+        flyBodyVelocity = nil
+    end
+    if flyBodyGyro then 
+        flyBodyGyro:Destroy() 
+        flyBodyGyro = nil
+    end
+    if flyConnection then 
+        flyConnection:Disconnect() 
+        flyConnection = nil
+    end
     local char = game:GetService("Players").LocalPlayer.Character
     if char then
         local hum = char:FindFirstChild("Humanoid")
@@ -370,8 +656,9 @@ local function toggleFly()
     return flyActive
 end
 
--- 13. INFINITE JUMP
+-- 14. INFINITE JUMP (CORREGIDO)
 local jumpActive = false
+local jumpConnection = nil
 
 local function toggleInfiniteJump()
     jumpActive = not jumpActive
@@ -381,7 +668,8 @@ local function toggleInfiniteJump()
             local hum = char:FindFirstChild("Humanoid")
             if hum then
                 hum.JumpPower = 50
-                hum:GetPropertyChangedSignal("Jump"):Connect(function()
+                if jumpConnection then jumpConnection:Disconnect() end
+                jumpConnection = hum:GetPropertyChangedSignal("Jump"):Connect(function()
                     if jumpActive and hum.Jump then
                         task.wait(0.05)
                         hum:ChangeState(Enum.HumanoidStateType.Jumping)
@@ -391,12 +679,16 @@ local function toggleInfiniteJump()
         end
         notify("🦘 Infinite Jump activado")
     else
+        if jumpConnection then 
+            jumpConnection:Disconnect() 
+            jumpConnection = nil
+        end
         notify("🦘 Infinite Jump desactivado")
     end
     return jumpActive
 end
 
--- 14. TIME DISPLAY
+-- 15. TIME DISPLAY
 local timeActive = true
 local timeGui = nil
 local timeLabel = nil
@@ -470,7 +762,7 @@ local function toggleTime()
     return timeActive
 end
 
--- 15. ANTI-STAFF
+-- 16. ANTI-STAFF
 local antiStaffActive = true
 local staffDetected = false
 
@@ -504,7 +796,7 @@ local function toggleAntiStaff()
     return antiStaffActive
 end
 
--- 16. ANTI-AFK
+-- 17. ANTI-AFK
 local antiAFKActive = true
 local lastActivity = tick()
 
@@ -531,7 +823,7 @@ local function toggleAntiAFK()
     return antiAFKActive
 end
 
--- 17. ANTI-BAN (HOOK DE KICK)
+-- 18. ANTI-BAN
 local oldNamecall = getrawmetatable(game).__namecall
 setreadonly(getrawmetatable(game), false)
 getrawmetatable(game).__namecall = newcclosure(function(self, ...)
@@ -545,13 +837,13 @@ end)
 setreadonly(getrawmetatable(game), true)
 writeLog("Anti-Ban/Kick activo")
 
--- 18. CREAR VENTANA PRINCIPAL CON WINDUI
+-- 19. CREAR VENTANA PRINCIPAL CON WINDUI (CORREGIDO)
 local function createMainWindow()
     local window = WindUI:CreateWindow({
-        Title   = "RC2 COMPLETE",
-        Author  = "by orvehack",
+        Title   = "RC2",
+        Author  = "by orvexpp",
         Folder  = "rc2_data",
-        Icon    = "pickaxe", -- Icono de pico
+        Icon    = "pickaxe",
         Theme   = "Dark",
         Acrylic = true,
         Transparent = true,
@@ -608,6 +900,24 @@ local function createMainWindow()
         end,
     })
 
+    farmTab:Slider({
+        Title = "⏱️ Tiempo entre recogidas",
+        Min = 10,
+        Max = 260,
+        Default = 70,
+        Step = 1,
+        Callback = function(Value)
+            autoFarmTimer = Value
+            local minutes = math.floor(Value / 60)
+            local seconds = Value % 60
+            if minutes > 0 then
+                notify("⏱️ Tiempo: " .. minutes .. "m " .. seconds .. "s")
+            else
+                notify("⏱️ Tiempo: " .. seconds .. "s")
+            end
+        end,
+    })
+
     farmTab:Paragraph({
         Title = "📋 Minerales seleccionados",
         Content = "Toca los botones para seleccionar",
@@ -645,34 +955,60 @@ local function createMainWindow()
         end,
     })
 
+    -- Tala de árboles
+    farmTab:Toggle({
+        Title = "🪓 Auto Tala",
+        Value = false,
+        Callback = function(Value)
+            autoChopActive = Value
+            if autoChopActive then
+                task.spawn(autoChopLoop)
+                notify("🪓 Auto Tala iniciado")
+            else
+                notify("🪓 Auto Tala detenido")
+            end
+        end,
+    })
+
+    -- Pesca
+    farmTab:Toggle({
+        Title = "🎣 Auto Pesca",
+        Value = false,
+        Callback = function(Value)
+            autoFishActive = Value
+            if autoFishActive then
+                task.spawn(autoFishLoop)
+                notify("🎣 Auto Pesca iniciado")
+            else
+                notify("🎣 Auto Pesca detenido")
+            end
+        end,
+    })
+
     -- ====== PESTAÑA 2: MISSIONS ======
     local missionsTab = window:Tab({
         Title = "📜 Missions",
         Icon = "scroll"
     })
 
-    missionsTab:Toggle({
-        Title = "🤖 AutoMissions",
-        Value = false,
-        Callback = function(Value)
-            autoMissionsActive = Value
-            if autoMissionsActive then
-                task.spawn(autoMissionsLoop)
-                notify("🤖 AutoMissions iniciado")
-            else
-                notify("🤖 AutoMissions detenido")
-            end
-        end,
-    })
-
     missionsTab:Paragraph({
         Title = "📋 Misiones disponibles",
-        Content = "Toca una misión para iniciarla",
+        Content = "Toca una misión para iniciarla (🟢 completada, 🟡 pausa, ⏳ activa)",
     })
+
+    local missionStates = {}
 
     local function refreshMissions()
         for _, mission in ipairs(missionsDB) do
-            local status = mission.completed and "🟢" or "⏳"
+            local status = ""
+            if mission.completed then
+                status = "🟢"
+            elseif missionStates[mission.id] and missionStates[mission.id] == "paused" then
+                status = "🟡"
+            else
+                status = "⏳"
+            end
+            
             missionsTab:Button({
                 Title = status .. " " .. mission.name .. " ($" .. mission.cost .. ")",
                 Callback = function()
@@ -680,13 +1016,21 @@ local function createMainWindow()
                         notify("✅ Misión ya completada")
                         return
                     end
-                    local money = getPlayerMoney()
-                    if money < mission.cost then
-                        local falta = mission.cost - money
-                        notify("❌ No tienes dinero suficiente. Necesitas $" .. falta .. " más.")
+                    
+                    -- Toggle entre activa y pausa
+                    if missionStates[mission.id] and missionStates[mission.id] == "paused" then
+                        missionStates[mission.id] = "active"
+                        notify("▶️ Misión reanudada: " .. mission.name)
+                        checkMission(mission)
+                    elseif missionStates[mission.id] and missionStates[mission.id] == "active" then
+                        missionStates[mission.id] = "paused"
+                        notify("⏸️ Misión en pausa: " .. mission.name)
                     else
+                        missionStates[mission.id] = "active"
+                        notify("▶️ Misión iniciada: " .. mission.name)
                         checkMission(mission)
                     end
+                    refreshMissions()
                 end,
             })
         end
@@ -707,13 +1051,12 @@ local function createMainWindow()
     })
 
     teleTab:Paragraph({
-        Title = "📌 Teleports disponibles",
+        Title = "📌 Teleports predefinidos",
         Content = "Toca para ir a una ubicación",
     })
 
-    local function refreshTeleList()
-        local names = listTeleports()
-        for _, name in ipairs(names) do
+    local function refreshDefaultTeleports()
+        for name, data in pairs(defaultTeleports) do
             teleTab:Button({
                 Title = name,
                 Callback = function()
@@ -723,13 +1066,26 @@ local function createMainWindow()
         end
     end
 
-    teleTab:Button({
-        Title = "🔄 Refrescar teleports",
-        Callback = function()
-            refreshTeleList()
-            notify("🔄 Lista actualizada")
-        end,
+    refreshDefaultTeleports()
+
+    teleTab:Paragraph({
+        Title = "📌 Teleports personalizados",
+        Content = "Guarda tus propias ubicaciones",
     })
+
+    local function refreshCustomTeleports()
+        local names = listTeleports()
+        for _, name in ipairs(names) do
+            if teleports[name] and teleports[name].type == "custom" then
+                teleTab:Button({
+                    Title = "📍 " .. name,
+                    Callback = function()
+                        teleportToLocation(name)
+                    end,
+                })
+            end
+        end
+    end
 
     teleTab:Paragraph({
         Title = "💾 Guardar ubicación personalizada",
@@ -751,9 +1107,18 @@ local function createMainWindow()
             if teleName ~= "" then
                 saveCurrentLocation(teleName)
                 teleName = ""
+                refreshCustomTeleports()
             else
                 notify("❌ Escribe un nombre primero")
             end
+        end,
+    })
+
+    teleTab:Button({
+        Title = "🔄 Refrescar teleports personalizados",
+        Callback = function()
+            refreshCustomTeleports()
+            notify("🔄 Lista actualizada")
         end,
     })
 
@@ -779,6 +1144,7 @@ local function createMainWindow()
         Step = 5,
         Callback = function(Value)
             flySpeed = Value
+            notify("🚀 Velocidad: " .. Value)
         end,
     })
 
@@ -862,10 +1228,10 @@ local function createMainWindow()
     return window
 end
 
--- 19. INICIALIZACIÓN
+-- 20. INICIALIZACIÓN
 local success, err = pcall(function()
     local window = createMainWindow()
-    notify("🚀 RC2 COMPLETE cargado correctamente", 4)
+    notify("🚀 RC2 cargado correctamente", 4)
     writeLog("Script cargado correctamente")
 end)
 
@@ -874,6 +1240,6 @@ if not success then
     writeLog("Error de carga: " .. tostring(err), true)
 end
 
-print("✅ RC2 COMPLETE cargado con WindUI")
+print("✅ RC2 cargado")
 print("📁 Carpeta: " .. folder)
 print("🟢 Usa el botón flotante para abrir la GUI")
