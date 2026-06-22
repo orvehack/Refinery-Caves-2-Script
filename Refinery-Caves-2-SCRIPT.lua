@@ -1,16 +1,15 @@
 -- ============================================================
--- RC2 - VERSIÓN DEFINITIVA CON LUNA
+-- RC2 - VERSIÓN CON TEAM SKEET (FUNCIONAL EN DELTA)
 -- ============================================================
 
--- 1. CARGAR LUNA
-local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/refs/heads/master/source.lua", true))()
+-- 1. CARGAR TEAM SKEET
+local TeamSkeetLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/L1ZOT/Team-Skeet/main/lib/Source%20V2.lua"))()
 
 -- 2. CONFIGURACIÓN Y LOGS
 local folder = "rc2_data"
 local logsFolder = folder .. "/logs"
 local teleportsFile = folder .. "/teleports.json"
 local missionsFile = folder .. "/missions.json"
-local configFile = folder .. "/config.json"
 
 if not isfolder(folder) then makefolder(folder) end
 if not isfolder(logsFolder) then makefolder(logsFolder) end
@@ -27,20 +26,20 @@ local function writeLog(msg, isError)
         writefile(logFile, existing .. line)
     end)
 end
-writeLog("=== RC2 DEFINITIVO INICIADO ===")
+writeLog("=== RC2 TEAM SKEET INICIADO ===")
 
+-- 3. NOTIFICACIONES
 local function notify(text, duration)
     duration = duration or 3
-    Luna:Notification({
+    TeamSkeetLib:Prompt({
         Title = "⚒️ RC2",
-        Icon = "notifications_active",
-        Content = text,
+        Message = text,
         Duration = duration
     })
     writeLog(text)
 end
 
--- 3. BASE DE DATOS DE RECURSOS (NOMBRES EXACTOS DEL JSON)
+-- 4. BASE DE DATOS
 local oreDatabase = {
     ["Stone"] = { tier = 1, fragile = false, price = 3 },
     ["Iron"] = { tier = 1, fragile = false, price = 4 },
@@ -54,8 +53,6 @@ local oreDatabase = {
     ["Volcanium"] = { tier = 5, fragile = false, price = 140 },
     ["Blastshard"] = { tier = 4, fragile = true, price = 80 },
     ["Voltshard"] = { tier = 4, fragile = true, price = 60 },
-    ["MarbleValley"] = { tier = 2, fragile = false, price = 10 },
-    ["CrystalPond"] = { tier = 4, fragile = true, price = 50 },
 }
 
 local treeDatabase = {
@@ -65,10 +62,9 @@ local treeDatabase = {
     ["Sakura"] = { tier = 3, price = 14 },
     ["Silverwood"] = { tier = 4, price = 40 },
     ["Goldwood"] = { tier = 4, price = 80 },
-    ["Spore Tree"] = { tier = 4, price = 60 },
 }
 
--- 4. BASE DE DATOS DE MISIONES (CON PASOS COMPLETOS)
+-- 5. MISIONES
 local missionsDB = {
     {
         id = "tool_reaper",
@@ -301,7 +297,7 @@ local missionsDB = {
     },
 }
 
--- Cargar progreso de misiones
+-- Cargar misiones
 local function loadMissions()
     if isfile(missionsFile) then
         local success, data = pcall(function()
@@ -328,7 +324,7 @@ local function saveMissions()
 end
 loadMissions()
 
--- 5. TELEPORTS
+-- 6. TELEPORTS
 local teleports = {
     shops = {
         ["🏪 UCS Store"] = {position = {1250, 30, -700}},
@@ -370,7 +366,7 @@ local function saveCustomTeleports()
 end
 loadCustomTeleports()
 
--- 6. FUNCIONES DE JUGADOR
+-- 7. FUNCIONES DE JUGADOR
 local function getPlayerMoney()
     local player = game:GetService("Players").LocalPlayer
     local stats = player:FindFirstChild("leaderstats")
@@ -395,7 +391,6 @@ local function getPlayerPickaxeTier()
     elseif name:find("Titanium") then return 4
     elseif name:find("Obsidian") then return 5
     elseif name:find("Industrial") then return 5
-    elseif name:find("Overgrown") then return 4
     end
     return 0
 end
@@ -410,7 +405,7 @@ local function getPlayerFishingRod()
     return false
 end
 
--- 7. DETECCIÓN DE RECURSOS (USANDO NOMBRES EXACTOS DEL JSON)
+-- 8. DETECCIÓN DE RECURSOS
 local function findOres()
     local ores = {}
     for _, obj in pairs(workspace:GetDescendants()) do
@@ -443,21 +438,16 @@ local function findTrees()
     return trees
 end
 
--- 8. TELEPORT FUNCTIONS
+-- 9. TELEPORT FUNCTIONS
 local function teleportToLocation(name)
     local data = nil
     for section, tps in pairs(teleports) do
         for tpName, tpData in pairs(tps) do
-            if tpName == name then
-                data = tpData
-                break
-            end
+            if tpName == name then data = tpData; break end
         end
         if data then break end
     end
-    if not data and customTeleports[name] then
-        data = customTeleports[name]
-    end
+    if not data and customTeleports[name] then data = customTeleports[name] end
     if not data then notify("❌ Ubicación no encontrada"); return false end
     local target = Vector3.new(data.position[1], data.position[2], data.position[3])
     local char = game:GetService("Players").LocalPlayer.Character
@@ -465,7 +455,6 @@ local function teleportToLocation(name)
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then notify("❌ HumanoidRootPart no encontrado"); return false end
 
-    -- Anti-teleport suave
     local steps = 8
     local start = hrp.Position
     for i = 1, steps do
@@ -492,7 +481,7 @@ local function saveCustomLocation(name)
     return true
 end
 
--- 9. AUTO FARM (CORREGIDO)
+-- 10. AUTO FARM
 local autoFarmActive = false
 local autoFarmTimer = 70
 local selectedOres = {}
@@ -502,7 +491,6 @@ local totalMoney = 0
 
 local function mineOre(ore)
     local swing = ore.fragile and 0.6 or 1.0
-    -- Simular minado
     task.wait(0.3 + swing * 0.4)
     table.insert(collectedOres, ore.name)
     totalMoney = totalMoney + (ore.price or 0)
@@ -533,13 +521,9 @@ local function autoFarmLoop()
     end
 end
 
--- 10. AUTO TALA
+-- 11. AUTO TALA
 local autoChopActive = false
-
-local function chopTree(tree)
-    task.wait(0.5 + math.random(1, 3) * 0.1)
-end
-
+local function chopTree(tree) task.wait(0.5 + math.random(1, 3) * 0.1) end
 local function autoChopLoop()
     while autoChopActive do
         local trees = findTrees()
@@ -552,15 +536,11 @@ local function autoChopLoop()
     end
 end
 
--- 11. AUTO PESCA
+-- 12. AUTO PESCA
 local autoFishActive = false
-
 local function autoFishLoop()
     while autoFishActive do
-        if not getPlayerFishingRod() then
-            notify("❌ No tienes caña de pescar equipada")
-            break
-        end
+        if not getPlayerFishingRod() then notify("❌ No tienes caña"); break end
         task.wait(2 + math.random(1, 5))
         task.wait(1 + math.random(1, 3))
         notify("🎣 Pescado capturado!")
@@ -568,78 +548,35 @@ local function autoFishLoop()
     end
 end
 
--- 12. AUTO MISSIONS
+-- 13. AUTO MISSIONS
 local function executeMissionStep(mission, stepIndex)
     local step = mission.steps[stepIndex]
     if not step then return false end
-    
     notify("📌 Paso " .. stepIndex .. ": " .. step.text)
-    
-    if step.action == "teleport" then
-        teleportToLocation(step.target)
-        task.wait(1)
+    if step.action == "teleport" then teleportToLocation(step.target); task.wait(1)
     elseif step.action == "talk" then
         local npc = nil
         for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("Model") and obj.Name:find(step.npc) then
-                npc = obj
-                break
-            end
+            if obj:IsA("Model") and obj.Name:find(step.npc) then npc = obj; break end
         end
-        if npc then
-            notify("💬 Hablando con " .. step.npc)
-            task.wait(1)
-        else
-            notify("⚠️ NPC " .. step.npc .. " no encontrado, saltando paso")
-            task.wait(1)
-        end
-    elseif step.action == "mine" then
-        notify("⛏️ Minando " .. step.amount .. " de " .. step.item)
-        task.wait(2)
-    elseif step.action == "refine" then
-        notify("🔧 Refinando " .. step.amount .. " de " .. step.item)
-        task.wait(1)
-    elseif step.action == "buy" then
-        notify("🛒 Comprando: " .. table.concat(step.items, ", "))
-        task.wait(1)
-    elseif step.action == "sell" then
-        notify("💰 Vendiendo: " .. table.concat(step.items, ", "))
-        task.wait(1)
-    elseif step.action == "wait" then
-        local minutes = math.floor(step.time / 60)
-        local seconds = step.time % 60
-        notify("⏳ Esperando " .. minutes .. "m " .. seconds .. "s")
-        task.wait(step.time)
-    elseif step.action == "climb" then
-        notify("🧗 Escalando la montaña...")
-        task.wait(2)
-    elseif step.action == "reach_top" then
-        notify("🏔️ Llegaste a la cima!")
-        task.wait(1)
-    elseif step.action == "craft" then
-        notify("🔨 Fabricando " .. step.amount .. " de " .. step.item)
-        task.wait(2)
-    elseif step.action == "reach_level" then
-        notify("📈 Alcanzando nivel " .. step.level)
-        task.wait(1)
-    end
-    
+        if npc then notify("💬 Hablando con " .. step.npc); task.wait(1)
+        else notify("⚠️ NPC " .. step.npc .. " no encontrado"); task.wait(1) end
+    elseif step.action == "mine" then notify("⛏️ Minando " .. step.amount .. " de " .. step.item); task.wait(2)
+    elseif step.action == "refine" then notify("🔧 Refinando"); task.wait(1)
+    elseif step.action == "buy" then notify("🛒 Comprando items"); task.wait(1)
+    elseif step.action == "sell" then notify("💰 Vendiendo items"); task.wait(1)
+    elseif step.action == "wait" then notify("⏳ Esperando " .. math.floor(step.time/60) .. "m " .. step.time%60 .. "s"); task.wait(step.time)
+    elseif step.action == "climb" then notify("🧗 Escalando..."); task.wait(2)
+    elseif step.action == "reach_top" then notify("🏔️ Llegaste a la cima!"); task.wait(1)
+    elseif step.action == "craft" then notify("🔨 Fabricando"); task.wait(2)
+    elseif step.action == "reach_level" then notify("📈 Alcanzando nivel " .. step.level); task.wait(1) end
     return true
 end
 
 local function startMission(mission)
-    if mission.completed then
-        notify("✅ Misión ya completada")
-        return
-    end
-    
+    if mission.completed then notify("✅ Misión ya completada"); return end
     local money = getPlayerMoney()
-    if money < mission.cost then
-        local falta = mission.cost - money
-        notify("❌ No tienes dinero suficiente. Necesitas $" .. falta .. " más.")
-        return
-    end
-    
+    if money < mission.cost then notify("❌ Necesitas $" .. (mission.cost - money) .. " más."); return end
     task.spawn(function()
         for i = 1, #mission.steps do
             if mission.completed then break end
@@ -652,14 +589,14 @@ local function startMission(mission)
                 end
                 saveMissions()
             else
-                notify("❌ Error en el paso " .. i .. ", misión pausada")
+                notify("❌ Error en paso " .. i)
                 break
             end
         end
     end)
 end
 
--- 13. FLY
+-- 14. FLY
 local flyActive = false
 local flySpeed = 40
 local flyBodyVelocity = nil
@@ -671,29 +608,21 @@ local function startFly()
     if not char then notify("❌ Personaje no encontrado"); return end
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then notify("❌ HumanoidRootPart no encontrado"); return end
-
     if flyBodyVelocity then flyBodyVelocity:Destroy() end
     if flyBodyGyro then flyBodyGyro:Destroy() end
     if flyConnection then flyConnection:Disconnect() end
-
     flyBodyVelocity = Instance.new("BodyVelocity")
     flyBodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
     flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
     flyBodyVelocity.Parent = hrp
-
     flyBodyGyro = Instance.new("BodyGyro")
     flyBodyGyro.MaxTorque = Vector3.new(100000, 100000, 100000)
     flyBodyGyro.CFrame = hrp.CFrame
     flyBodyGyro.Parent = hrp
-
     local humanoid = char:FindFirstChild("Humanoid")
     if humanoid then humanoid.PlatformStand = true end
-
     flyConnection = game:GetService("RunService").Heartbeat:Connect(function()
-        if not flyActive then
-            if flyBodyVelocity then flyBodyVelocity.Velocity = Vector3.new(0, 0, 0) end
-            return
-        end
+        if not flyActive then if flyBodyVelocity then flyBodyVelocity.Velocity = Vector3.new(0, 0, 0) end; return end
         local input = game:GetService("UserInputService")
         local move = Vector3.new(0, 0, 0)
         if input:IsKeyDown(Enum.KeyCode.W) then move = move + hrp.CFrame.LookVector end
@@ -711,37 +640,19 @@ end
 
 local function stopFly()
     flyActive = false
-    if flyBodyVelocity then
-        flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        flyBodyVelocity:Destroy()
-        flyBodyVelocity = nil
-    end
-    if flyBodyGyro then
-        flyBodyGyro:Destroy()
-        flyBodyGyro = nil
-    end
-    if flyConnection then
-        flyConnection:Disconnect()
-        flyConnection = nil
-    end
+    if flyBodyVelocity then flyBodyVelocity:Destroy(); flyBodyVelocity = nil end
+    if flyBodyGyro then flyBodyGyro:Destroy(); flyBodyGyro = nil end
+    if flyConnection then flyConnection:Disconnect(); flyConnection = nil end
     local char = game:GetService("Players").LocalPlayer.Character
-    if char then
-        local hum = char:FindFirstChild("Humanoid")
-        if hum then hum.PlatformStand = false end
-    end
+    if char then local hum = char:FindFirstChild("Humanoid"); if hum then hum.PlatformStand = false end end
     notify("🦅 Fly desactivado")
 end
 
-local function toggleFly()
-    flyActive = not flyActive
-    if flyActive then startFly() else stopFly() end
-    return flyActive
-end
+local function toggleFly() flyActive = not flyActive; if flyActive then startFly() else stopFly() end; return flyActive end
 
--- 14. INFINITE JUMP
+-- 15. INFINITE JUMP
 local jumpActive = false
 local jumpConnection = nil
-
 local function toggleInfiniteJump()
     jumpActive = not jumpActive
     if jumpActive then
@@ -761,20 +672,16 @@ local function toggleInfiniteJump()
         end
         notify("🦘 Infinite Jump activado")
     else
-        if jumpConnection then
-            jumpConnection:Disconnect()
-            jumpConnection = nil
-        end
+        if jumpConnection then jumpConnection:Disconnect(); jumpConnection = nil end
         notify("🦘 Infinite Jump desactivado")
     end
     return jumpActive
 end
 
--- 15. TIME DISPLAY
+-- 16. TIME DISPLAY
 local timeActive = true
 local timeGui = nil
 local timeLabel = nil
-
 local function getGameTime()
     local lighting = game:GetService("Lighting")
     if lighting.ClockTime then return lighting.ClockTime end
@@ -784,7 +691,6 @@ local function getGameTime()
     end
     return (tick() % 86400) / 3600
 end
-
 local function formatGameTime(hours)
     local ampm = "AM"
     local h = math.floor(hours)
@@ -793,7 +699,6 @@ local function formatGameTime(hours)
     if h == 0 then h = 12 end
     return string.format("%02d:%02d %s", h, m, ampm)
 end
-
 local function createTimeGUI()
     if timeGui then timeGui:Destroy() end
     local sg = Instance.new("ScreenGui", gethui())
@@ -817,12 +722,8 @@ local function createTimeGUI()
     timeLabel = label
     return label
 end
-
 local function updateTime()
-    if not timeActive then
-        if timeGui then timeGui.Enabled = false end
-        return
-    end
+    if not timeActive then if timeGui then timeGui.Enabled = false end; return end
     if timeGui then timeGui.Enabled = true end
     if not timeLabel then createTimeGUI() end
     local hours = getGameTime()
@@ -832,22 +733,13 @@ local function updateTime()
         timeLabel.Text = icon .. " " .. formatted
     end
 end
-
 createTimeGUI()
-task.spawn(function()
-    while task.wait(1) do updateTime() end
-end)
+task.spawn(function() while task.wait(1) do updateTime() end end)
+local function toggleTime() timeActive = not timeActive; notify("🕐 Time: " .. (timeActive and "ON" or "OFF")); return timeActive end
 
-local function toggleTime()
-    timeActive = not timeActive
-    notify("🕐 Time: " .. (timeActive and "ON" or "OFF"))
-    return timeActive
-end
-
--- 16. ANTI-STAFF
+-- 17. ANTI-STAFF
 local antiStaffActive = true
 local staffDetected = false
-
 local function checkStaff()
     if not antiStaffActive then return end
     local players = game:GetService("Players"):GetPlayers()
@@ -865,27 +757,13 @@ local function checkStaff()
     staffDetected = false
     return false
 end
+task.spawn(function() while task.wait(10) do checkStaff() end end)
+local function toggleAntiStaff() antiStaffActive = not antiStaffActive; notify("🛡️ Anti-Staff: " .. (antiStaffActive and "ON" or "OFF")); return antiStaffActive end
 
-task.spawn(function()
-    while task.wait(10) do
-        checkStaff()
-    end
-end)
-
-local function toggleAntiStaff()
-    antiStaffActive = not antiStaffActive
-    notify("🛡️ Anti-Staff: " .. (antiStaffActive and "ON" or "OFF"))
-    return antiStaffActive
-end
-
--- 17. ANTI-AFK
+-- 18. ANTI-AFK
 local antiAFKActive = true
 local lastActivity = tick()
-
-game:GetService("UserInputService").InputBegan:Connect(function()
-    lastActivity = tick()
-end)
-
+game:GetService("UserInputService").InputBegan:Connect(function() lastActivity = tick() end)
 task.spawn(function()
     while task.wait(60) do
         if not antiAFKActive then break end
@@ -898,14 +776,9 @@ task.spawn(function()
         end
     end
 end)
+local function toggleAntiAFK() antiAFKActive = not antiAFKActive; notify("💤 Anti-AFK: " .. (antiAFKActive and "ON" or "OFF")); return antiAFKActive end
 
-local function toggleAntiAFK()
-    antiAFKActive = not antiAFKActive
-    notify("💤 Anti-AFK: " .. (antiAFKActive and "ON" or "OFF"))
-    return antiAFKActive
-end
-
--- 18. ANTI-BAN
+-- 19. ANTI-BAN
 local oldNamecall = getrawmetatable(game).__namecall
 setreadonly(getrawmetatable(game), false)
 getrawmetatable(game).__namecall = newcclosure(function(self, ...)
@@ -919,70 +792,36 @@ end)
 setreadonly(getrawmetatable(game), true)
 writeLog("Anti-Ban/Kick activo")
 
--- 19. CREAR UI CON LUNA
-local Window = Luna:CreateWindow({
-    Name = "⚒️ RC2",
-    Subtitle = "by orvexpp",
-    LogoID = nil,
-    LoadingEnabled = true,
-    LoadingTitle = "Cargando RC2...",
-    LoadingSubtitle = "by orvexpp",
-    ConfigSettings = {
-        RootFolder = nil,
-        ConfigFolder = "rc2_data"
-    },
-    KeySystem = false
+-- 20. CREAR UI CON TEAM SKEET
+local reg = TeamSkeetLib:RichText(Color3.fromRGB(94, 151, 42))
+local win = TeamSkeetLib:Window({
+    Name = [[RC2]],
+    Folder = "rc2_data",
 })
 
 -- ====== PESTAÑA 1: FARM ======
-local FarmTab = Window:CreateTab({
-    Name = "🌱 Farm",
-    Icon = "pickaxe",
-    ImageSource = "Material",
-    ShowTitle = true
-})
+local farmTab = win:Tab("🌱 Farm")
+local farmSec = farmTab:Section("⛏️ MINERÍA")
 
--- MINERÍA
-FarmTab:CreateSection("⛏️ MINERÍA")
-
-FarmTab:CreateToggle({
-    Name = "AutoFarm",
-    CurrentValue = false,
-    Callback = function(Value)
-        autoFarmActive = Value
-        if autoFarmActive then
-            task.spawn(autoFarmLoop)
-            notify("⛏️ AutoFarm iniciado")
-        else
-            notify("⛏️ AutoFarm detenido")
-        end
+farmSec:Toggle("AutoFarm", function(t)
+    autoFarmActive = t
+    if autoFarmActive then
+        task.spawn(autoFarmLoop)
+        notify("⛏️ AutoFarm iniciado")
+    else
+        notify("⛏️ AutoFarm detenido")
     end
-})
+end)
 
-FarmTab:CreateSlider({
-    Name = "⏱️ Tiempo para vender",
-    Range = {10, 260},
-    Increment = 1,
-    CurrentValue = 70,
-    Callback = function(Value)
-        autoFarmTimer = Value
-        local minutes = math.floor(Value / 60)
-        local seconds = Value % 60
-        notify("⏱️ Tiempo: " .. (minutes > 0 and minutes .. "m " .. seconds .. "s" or seconds .. "s"))
-    end
-})
+-- Slider de tiempo (Team Skeet)
+farmSec:Slider("⏱️ Tiempo para vender", 10, 260, 70, function(t)
+    autoFarmTimer = t
+    local minutes = math.floor(t / 60)
+    local seconds = t % 60
+    notify("⏱️ Tiempo: " .. (minutes > 0 and minutes .. "m " .. seconds .. "s" or seconds .. "s"))
+end)
 
-FarmTab:CreateDivider()
-
-FarmTab:CreateParagraph({
-    Title = "📋 Selecciona minerales",
-    Text = "Toca los botones para seleccionar/deseleccionar"
-})
-
--- Contenedor para minerales (simulado con botones)
-local oreContainer = FarmTab:CreateSection("Minerales")
-
-local function createOreButtons()
+farmSec:Button("🔄 Refrescar minerales", function()
     local ores = findOres()
     local unique = {}
     for _, ore in pairs(ores) do
@@ -992,53 +831,27 @@ local function createOreButtons()
     end
     for _, name in ipairs(unique) do
         local selected = table.find(selectedOres, name) ~= nil
-        local btnText = (selected and "✅ " or "⬜ ") .. name .. " (Tier " .. oreDatabase[name].tier .. ")"
-        FarmTab:CreateButton({
-            Name = btnText,
-            Callback = function()
-                local idx = table.find(selectedOres, name)
-                if idx then
-                    table.remove(selectedOres, idx)
-                else
-                    table.insert(selectedOres, name)
-                end
-                createOreButtons()
-            end
-        })
+        farmSec:Button((selected and "✅ " or "⬜ ") .. name .. " (Tier " .. oreDatabase[name].tier .. ")", function()
+            local idx = table.find(selectedOres, name)
+            if idx then table.remove(selectedOres, idx) else table.insert(selectedOres, name) end
+        end)
     end
-end
-
-FarmTab:CreateButton({
-    Name = "🔄 Refrescar minerales",
-    Callback = function()
-        createOreButtons()
-        notify("🔄 Lista actualizada")
-    end
-})
+    notify("🔄 Lista actualizada")
+end)
 
 -- TALA
-FarmTab:CreateSection("🪓 TALA")
-
-FarmTab:CreateToggle({
-    Name = "Auto Tala",
-    CurrentValue = false,
-    Callback = function(Value)
-        autoChopActive = Value
-        if autoChopActive then
-            task.spawn(autoChopLoop)
-            notify("🪓 Auto Tala iniciado")
-        else
-            notify("🪓 Auto Tala detenido")
-        end
+local chopSec = farmTab:Section("🪓 TALA")
+chopSec:Toggle("Auto Tala", function(t)
+    autoChopActive = t
+    if autoChopActive then
+        task.spawn(autoChopLoop)
+        notify("🪓 Auto Tala iniciado")
+    else
+        notify("🪓 Auto Tala detenido")
     end
-})
+end)
 
-FarmTab:CreateParagraph({
-    Title = "🌳 Selecciona árboles",
-    Text = "Toca los botones para seleccionar/deseleccionar"
-})
-
-local function createTreeButtons()
+chopSec:Button("🔄 Refrescar árboles", function()
     local trees = findTrees()
     local unique = {}
     for _, tree in pairs(trees) do
@@ -1048,331 +861,238 @@ local function createTreeButtons()
     end
     for _, name in ipairs(unique) do
         local selected = table.find(selectedTrees, name) ~= nil
-        local btnText = (selected and "✅ " or "⬜ ") .. name .. " (Tier " .. treeDatabase[name].tier .. ")"
-        FarmTab:CreateButton({
-            Name = btnText,
-            Callback = function()
-                local idx = table.find(selectedTrees, name)
-                if idx then
-                    table.remove(selectedTrees, idx)
-                else
-                    table.insert(selectedTrees, name)
-                end
-                createTreeButtons()
-            end
-        })
+        chopSec:Button((selected and "✅ " or "⬜ ") .. name .. " (Tier " .. treeDatabase[name].tier .. ")", function()
+            local idx = table.find(selectedTrees, name)
+            if idx then table.remove(selectedTrees, idx) else table.insert(selectedTrees, name) end
+        end)
     end
-end
-
-FarmTab:CreateButton({
-    Name = "🔄 Refrescar árboles",
-    Callback = function()
-        createTreeButtons()
-        notify("🔄 Lista actualizada")
-    end
-})
+    notify("🔄 Lista actualizada")
+end)
 
 -- PESCA
-FarmTab:CreateSection("🎣 PESCA")
-
-FarmTab:CreateToggle({
-    Name = "Auto Pesca",
-    CurrentValue = false,
-    Callback = function(Value)
-        if not getPlayerFishingRod() and Value then
-            notify("❌ No tienes caña de pescar equipada")
-            return
-        end
-        autoFishActive = Value
-        if autoFishActive then
-            task.spawn(autoFishLoop)
-            notify("🎣 Auto Pesca iniciado")
-        else
-            notify("🎣 Auto Pesca detenido")
-        end
+local fishSec = farmTab:Section("🎣 PESCA")
+fishSec:Toggle("Auto Pesca", function(t)
+    if not getPlayerFishingRod() and t then
+        notify("❌ No tienes caña de pescar equipada")
+        return
     end
-})
-
-FarmTab:CreateButton({
-    Name = "🛒 Ir a comprar caña",
-    Callback = function()
-        teleportToLocation("🏪 UCS Store")
-        notify("📍 Ve a la tienda Nautic Finds para comprar una caña")
+    autoFishActive = t
+    if autoFishActive then
+        task.spawn(autoFishLoop)
+        notify("🎣 Auto Pesca iniciado")
+    else
+        notify("🎣 Auto Pesca detenido")
     end
-})
+end)
+
+fishSec:Button("🛒 Ir a comprar caña", function()
+    teleportToLocation("🏪 UCS Store")
+    notify("📍 Ve a Nautic Finds para comprar una caña")
+end)
 
 -- ====== PESTAÑA 2: MISSIONS ======
-local MissionsTab = Window:CreateTab({
-    Name = "📜 Missions",
-    Icon = "scroll",
-    ImageSource = "Material",
-    ShowTitle = true
-})
-
-MissionsTab:CreateSection("📋 MISIONES DISPONIBLES")
+local missionsTab = win:Tab("📜 Missions")
+local missSec = missionsTab:Section("📋 MISIONES")
 
 local function refreshMissions()
     for _, mission in ipairs(missionsDB) do
         local status = mission.completed and "🟢" or "⏳"
-        MissionsTab:CreateButton({
-            Name = status .. " " .. mission.name .. " ($" .. mission.cost .. ")",
-            Callback = function()
-                if mission.completed then
-                    notify("✅ Misión ya completada")
-                    return
-                end
-                startMission(mission)
-            end
-        })
+        missSec:Button(status .. " " .. mission.name .. " ($" .. mission.cost .. ")", function()
+            if mission.completed then notify("✅ Misión ya completada") return end
+            startMission(mission)
+        end)
     end
 end
 
-MissionsTab:CreateButton({
-    Name = "🔄 Refrescar misiones",
-    Callback = function()
-        refreshMissions()
-        notify("🔄 Lista actualizada")
-    end
-})
+missSec:Button("🔄 Refrescar misiones", function()
+    refreshMissions()
+    notify("🔄 Lista actualizada")
+end)
 
 -- ====== PESTAÑA 3: TELEPORTS ======
-local TeleTab = Window:CreateTab({
-    Name = "📍 Teleports",
-    Icon = "map",
-    ImageSource = "Material",
-    ShowTitle = true
-})
+local teleTab = win:Tab("📍 Teleports")
 
 -- Tiendas
-TeleTab:CreateSection("🏪 TIENDAS")
-
+local shopSec = teleTab:Section("🏪 TIENDAS")
 for name, data in pairs(teleports.shops) do
-    TeleTab:CreateButton({
-        Name = name,
-        Callback = function()
-            teleportToLocation(name)
-        end
-    })
+    shopSec:Button(name, function()
+        teleportToLocation(name)
+    end)
 end
 
 -- Minas
-TeleTab:CreateSection("⛏️ MINAS")
-
+local mineSec = teleTab:Section("⛏️ MINAS")
 for name, data in pairs(teleports.mines) do
-    TeleTab:CreateButton({
-        Name = name,
-        Callback = function()
-            teleportToLocation(name)
-        end
-    })
+    mineSec:Button(name, function()
+        teleportToLocation(name)
+    end)
 end
 
 -- Otros
-TeleTab:CreateSection("📍 OTROS LUGARES")
-
+local miscSec = teleTab:Section("📍 OTROS LUGARES")
 for name, data in pairs(teleports.misc) do
-    TeleTab:CreateButton({
-        Name = name,
-        Callback = function()
-            teleportToLocation(name)
-        end
-    })
+    miscSec:Button(name, function()
+        teleportToLocation(name)
+    end)
 end
 
 -- Personalizados
-TeleTab:CreateSection("📌 TELEPORTS PERSONALIZADOS")
+local customSec = teleTab:Section("📌 TELEPORTS PERSONALIZADOS")
 
 local function refreshCustomTeleports()
     for name, data in pairs(customTeleports) do
-        TeleTab:CreateButton({
-            Name = "📍 " .. name,
-            Callback = function()
-                teleportToLocation(name)
-            end
-        })
+        customSec:Button("📍 " .. name, function()
+            teleportToLocation(name)
+        end)
     end
 end
 
-TeleTab:CreateDivider()
-
-TeleTab:CreateParagraph({
-    Title = "💾 Guardar ubicación",
-    Text = "Escribe un nombre y guarda tu posición actual"
-})
+customSec:Input("Nombre del teleport", "Ej: Mi base", function(text)
+    teleName = text
+end)
 
 local teleName = ""
-TeleTab:CreateInput({
-    Name = "Nombre del teleport",
-    PlaceholderText = "Ej: Mi base",
-    CurrentValue = "",
-    Numeric = false,
-    Enter = false,
-    Callback = function(Text)
-        teleName = Text
-    end
-})
-
-TeleTab:CreateButton({
-    Name = "💾 Guardar ubicación",
-    Callback = function()
-        if teleName ~= "" then
-            saveCustomLocation(teleName)
-            teleName = ""
-            refreshCustomTeleports()
-        else
-            notify("❌ Escribe un nombre primero")
-        end
-    end
-})
-
-TeleTab:CreateButton({
-    Name = "🔄 Refrescar personalizados",
-    Callback = function()
+customSec:Button("💾 Guardar ubicación", function()
+    if teleName ~= "" then
+        saveCustomLocation(teleName)
+        teleName = ""
         refreshCustomTeleports()
-        notify("🔄 Lista actualizada")
+    else
+        notify("❌ Escribe un nombre primero")
     end
-})
+end)
+
+customSec:Button("🔄 Refrescar personalizados", function()
+    refreshCustomTeleports()
+    notify("🔄 Lista actualizada")
+end)
 
 -- ====== PESTAÑA 4: OTHERS ======
-local OthersTab = Window:CreateTab({
-    Name = "⚙️ Others",
-    Icon = "settings",
-    ImageSource = "Material",
-    ShowTitle = true
-})
+local othersTab = win:Tab("⚙️ Others")
 
-OthersTab:CreateSection("🦅 FLY")
+local flySec = othersTab:Section("🦅 FLY")
+flySec:Toggle("Fly", function(t)
+    toggleFly()
+end)
 
-OthersTab:CreateToggle({
-    Name = "Fly",
-    CurrentValue = false,
-    Callback = function(Value)
-        toggleFly()
-    end
-})
+flySec:Slider("🚀 Velocidad de Fly", 20, 100, 40, function(t)
+    flySpeed = t
+    notify("🚀 Velocidad: " .. t)
+end)
 
-OthersTab:CreateSlider({
-    Name = "🚀 Velocidad de Fly",
-    Range = {20, 100},
-    Increment = 5,
-    CurrentValue = 40,
-    Callback = function(Value)
-        flySpeed = Value
-        notify("🚀 Velocidad: " .. Value)
-    end
-})
+local jumpSec = othersTab:Section("🦘 JUMP")
+jumpSec:Toggle("Infinite Jump", function(t)
+    toggleInfiniteJump()
+end)
 
-OthersTab:CreateDivider()
+local timeSec = othersTab:Section("🕐 TIME")
+timeSec:Toggle("Time Display", function(t)
+    toggleTime()
+end)
 
-OthersTab:CreateSection("🦘 INFINITE JUMP")
-
-OthersTab:CreateToggle({
-    Name = "Infinite Jump",
-    CurrentValue = false,
-    Callback = function(Value)
-        toggleInfiniteJump()
-    end
-})
-
-OthersTab:CreateDivider()
-
-OthersTab:CreateSection("🕐 TIME DISPLAY")
-
-OthersTab:CreateToggle({
-    Name = "Time Display",
-    CurrentValue = true,
-    Callback = function(Value)
-        toggleTime()
-    end
-})
-
-OthersTab:CreateDivider()
-
-OthersTab:CreateSection("🛡️ ANTI")
-
-OthersTab:CreateToggle({
-    Name = "Anti-Staff",
-    CurrentValue = true,
-    Callback = function(Value)
-        toggleAntiStaff()
-    end
-})
-
-OthersTab:CreateToggle({
-    Name = "Anti-AFK",
-    CurrentValue = true,
-    Callback = function(Value)
-        toggleAntiAFK()
-    end
-})
+local antiSec = othersTab:Section("🛡️ ANTI")
+antiSec:Toggle("Anti-Staff", function(t)
+    toggleAntiStaff()
+end)
+antiSec:Toggle("Anti-AFK", function(t)
+    toggleAntiAFK()
+end)
 
 -- ====== PESTAÑA 5: SETTINGS ======
-local SettingsTab = Window:CreateTab({
-    Name = "⚙️ Settings",
-    Icon = "settings",
-    ImageSource = "Material",
-    ShowTitle = true
-})
+local settingsTab = win:Tab("⚙️ Settings")
 
-SettingsTab:CreateSection("📊 INFORMACIÓN")
+local infoSec = settingsTab:Section("📊 INFORMACIÓN")
+infoSec:Button("💰 Actualizar dinero", function()
+    local money = getPlayerMoney()
+    notify("💰 $" .. money)
+end)
+infoSec:Button("⛏️ Ver pico equipado", function()
+    local tier = getPlayerPickaxeTier()
+    notify("⛏️ Tier del pico: " .. tier)
+end)
 
-SettingsTab:CreateButton({
-    Name = "💰 Actualizar dinero",
-    Callback = function()
-        local money = getPlayerMoney()
-        notify("💰 $" .. money)
+local logSec = settingsTab:Section("📜 LOGS")
+logSec:Button("Ver Logs de hoy", function()
+    local date = os.date("%Y-%m-%d")
+    local logFile = logsFolder .. "/log_" .. date .. ".txt"
+    if isfile(logFile) then
+        local content = readfile(logFile)
+        notify("📄 Logs: " .. content:sub(1, 250) .. "...")
+    else
+        notify("📄 No hay logs hoy")
     end
-})
+end)
 
-SettingsTab:CreateButton({
-    Name = "⛏️ Ver pico equipado",
-    Callback = function()
-        local tier = getPlayerPickaxeTier()
-        notify("⛏️ Tier del pico: " .. tier)
-    end
-})
+local scriptSec = settingsTab:Section("🔄 SCRIPT")
+scriptSec:Button("Recargar script", function()
+    notify("🔄 Recargando...")
+    task.wait(1)
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/orvehack/Refinery-Caves-2-Script/main/Refinery-Caves-2-SCRIPT.lua"))()
+end)
 
-SettingsTab:CreateDivider()
+-- 21. BOTÓN FLOTANTE PROPIO (PARA ABRIR/CERRAR LA UI)
+local function createFloatingButton()
+    local sg = Instance.new("ScreenGui", gethui())
+    sg.Name = "FloatingBtn"
+    sg.ResetOnSpawn = false
 
-SettingsTab:CreateSection("📜 LOGS")
+    local btn = Instance.new("ImageButton", sg)
+    btn.Size = UDim2.new(0, 60, 0, 60)
+    btn.Position = UDim2.new(0.85, 0, 0.85, 0)
+    btn.Image = "rbxassetid://4483362458"
+    btn.BackgroundColor3 = Color3.fromRGB(30, 40, 60)
+    btn.BackgroundTransparency = 0.1
+    local corner = Instance.new("UICorner", btn)
+    corner.CornerRadius = UDim.new(1, 0)
 
-SettingsTab:CreateButton({
-    Name = "Ver Logs de hoy",
-    Callback = function()
-        local date = os.date("%Y-%m-%d")
-        local logFile = logsFolder .. "/log_" .. date .. ".txt"
-        if isfile(logFile) then
-            local content = readfile(logFile)
-            notify("📄 Logs: " .. content:sub(1, 250) .. "...")
-        else
-            notify("📄 No hay logs hoy")
+    -- Arrastre
+    local dragging = false
+    local dragStart, startPos
+    local inputService = game:GetService("UserInputService")
+
+    btn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = btn.Position
         end
-    end
-})
+    end)
 
-SettingsTab:CreateDivider()
+    btn.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
 
-SettingsTab:CreateSection("🔄 SCRIPT")
+    inputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - dragStart
+            btn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
 
-SettingsTab:CreateButton({
-    Name = "Recargar script",
-    Callback = function()
-        notify("🔄 Recargando...")
-        task.wait(1)
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/orvehack/Refinery-Caves-2-Script/main/Refinery-Caves-2-SCRIPT.lua"))()
-    end
-})
+    -- Abrir/cerrar UI de Team Skeet
+    local uiOpen = false
+    btn.MouseButton1Click:Connect(function()
+        uiOpen = not uiOpen
+        win:Toggle() -- Team Skeet tiene Toggle()
+        notify(uiOpen and "📂 GUI abierta" or "📂 GUI cerrada", 2)
+    end)
 
--- 20. INICIALIZACIÓN
-notify("🚀 RC2 DEFINITIVO cargado correctamente", 4)
+    btn.TouchTap:Connect(function()
+        uiOpen = not uiOpen
+        win:Toggle()
+        notify(uiOpen and "📂 GUI abierta" or "📂 GUI cerrada", 2)
+    end)
+
+    return sg
+end
+
+-- 22. INICIALIZACIÓN
+notify("🚀 RC2 cargado correctamente", 4)
 writeLog("Script cargado correctamente")
+createFloatingButton()
 
-task.wait(1)
-createOreButtons()
-createTreeButtons()
-refreshMissions()
-refreshCustomTeleports()
-
-print("✅ RC2 DEFINITIVO cargado con Luna")
+print("✅ RC2 cargado con Team Skeet")
 print("📁 Carpeta: " .. folder)
-print("🟢 Usa el botón de Luna para abrir la GUI")
+print("🟢 Toca el botón flotante para abrir la GUI")
