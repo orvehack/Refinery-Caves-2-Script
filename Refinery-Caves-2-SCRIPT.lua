@@ -1,26 +1,15 @@
 -- ============================================================
--- RC2 COMPLETE - VERSIÓN FINAL CON RAYFIELD Y TODAS LAS FUNCIONES
+-- RC2 COMPLETE - VERSIÓN CON WINDUI (FUNCIONAL EN DELTA)
 -- ============================================================
 
--- 1. CARGAR RAYFIELD (LIBRERÍA UI MODERNA)
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- 1. CARGAR WINDUI (LIBRERÍA UI QUE FUNCIONA EN DELTA)
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
 
--- 2. NOTIFICACIONES CON RAYFIELD
-local function notify(text, duration)
-    duration = duration or 3
-    Rayfield:Notify({
-        Title = "⚒️ RC2",
-        Content = text,
-        Duration = duration,
-    })
-end
-
--- 3. CONFIGURACIÓN Y LOGS
+-- 2. CONFIGURACIÓN Y LOGS
 local folder = "rc2_data"
 local logsFolder = folder .. "/logs"
 local teleportsFile = folder .. "/teleports.json"
 local missionsFile = folder .. "/missions.json"
-local configFile = folder .. "/config.json"
 
 if not isfolder(folder) then makefolder(folder) end
 if not isfolder(logsFolder) then makefolder(logsFolder) end
@@ -39,71 +28,17 @@ local function writeLog(msg, isError)
 end
 writeLog("=== RC2 COMPLETE INICIADO ===")
 
--- 4. BOTÓN FLOTANTE (CON LOGO DE RC2 Y ARRASTRE)
-local function createFloatingButton()
-    local sg = Instance.new("ScreenGui", gethui())
-    sg.Name = "FloatingBtn"
-    sg.ResetOnSpawn = false
-
-    local btn = Instance.new("ImageButton", sg)
-    btn.Size = UDim2.new(0, 60, 0, 60)
-    btn.Position = UDim2.new(0.85, 0, 0.85, 0)
-    btn.Image = "rbxassetid://4483362458" -- Pico + Hacha
-    btn.BackgroundColor3 = Color3.fromRGB(30, 40, 60)
-    btn.BackgroundTransparency = 0.1
-    local corner = Instance.new("UICorner", btn)
-    corner.CornerRadius = UDim.new(1, 0)
-
-    -- Arrastre
-    local dragging = false
-    local dragStart, startPos
-    local inputService = game:GetService("UserInputService")
-
-    btn.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = btn.Position
-        end
-    end)
-
-    btn.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-
-    inputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.Touch then
-            local delta = input.Position - dragStart
-            btn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-
-    -- Abrir/cerrar GUI
-    local guiOpen = false
-    local mainWindow = nil
-
-    local function toggleGUI()
-        if not mainWindow then
-            mainWindow = createMainWindow()
-        end
-        guiOpen = not guiOpen
-        mainWindow.Visible = guiOpen
-        if guiOpen then
-            notify("📂 GUI abierta", 2)
-        else
-            notify("📂 GUI cerrada", 2)
-        end
-    end
-
-    btn.MouseButton1Click:Connect(toggleGUI)
-    btn.TouchTap:Connect(toggleGUI)
-
-    return sg
+-- 3. NOTIFICACIONES CON WINDUI
+local function notify(text, duration)
+    duration = duration or 3
+    WindUI:Notify({
+        Title = "⚒️ RC2",
+        Content = text,
+        Duration = duration,
+    })
 end
 
--- 5. BASE DE DATOS DE MINERALES
+-- 4. BASE DE DATOS DE MINERALES
 local oreDatabase = {
     ["Stone"] = { tier = 1, fragile = false },
     ["Iron"] = { tier = 1, fragile = false },
@@ -119,16 +54,7 @@ local oreDatabase = {
     ["Voltshard"] = { tier = 4, fragile = true },
 }
 
-local treeDatabase = {
-    ["Oak"] = { tier = 1 },
-    ["Birch"] = { tier = 2 },
-    ["Palm"] = { tier = 2 },
-    ["Sakura"] = { tier = 3 },
-    ["Silverwood"] = { tier = 4 },
-    ["Goldwood"] = { tier = 4 },
-}
-
--- 6. BASE DE DATOS DE MISIONES
+-- 5. BASE DE DATOS DE MISIONES
 local missionsDB = {
     {id = "tool_reaper", name = "Tool Reaper", npc = "Maroon", location = "Silver's Sellzone", cost = 0, items = {"Relic"}, reward = "Tool Reaper", completed = false, progress = 0},
     {id = "golden_ticket", name = "Golden Ticket", npc = "Silver", location = "Silver's Sellzone", cost = 0, items = {"Gold", "Crystal Fish", "Silverwood"}, reward = "Golden Ticket", completed = false, progress = 0},
@@ -172,7 +98,7 @@ local function saveMissions()
 end
 loadMissions()
 
--- 7. TELEPORTS PREDEFINIDOS
+-- 6. TELEPORTS PREDEFINIDOS
 local defaultTeleports = {
     ["🏠 Novabay Spawn"] = {position = {0, 0, 0}, type = "default"},
     ["🏪 UCS Store"] = {position = {1250, 30, -700}, type = "default"},
@@ -213,7 +139,7 @@ local function saveTeleports()
 end
 loadTeleports()
 
--- 8. FUNCIONES DE JUGADOR
+-- 7. FUNCIONES DE JUGADOR
 local function getPlayerMoney()
     local player = game:GetService("Players").LocalPlayer
     local stats = player:FindFirstChild("leaderstats")
@@ -243,7 +169,7 @@ local function getPlayerPickaxeTier()
     return 0
 end
 
--- 9. DETECCIÓN DE RECURSOS
+-- 8. DETECCIÓN DE RECURSOS
 local function findOres()
     local ores = {}
     for _, obj in pairs(workspace:GetDescendants()) do
@@ -260,23 +186,7 @@ local function findOres()
     return ores
 end
 
-local function findTrees()
-    local trees = {}
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") or obj:IsA("Part") then
-            local name = obj.Name or ""
-            for treeName, data in pairs(treeDatabase) do
-                if name:find(treeName) or name:find(treeName:lower()) then
-                    table.insert(trees, {object = obj, name = treeName, tier = data.tier})
-                    break
-                end
-            end
-        end
-    end
-    return trees
-end
-
--- 10. AUTO FARM - MINERÍA
+-- 9. AUTO FARM - MINERÍA
 local autoFarmActive = false
 local selectedOres = {}
 
@@ -304,7 +214,7 @@ local function autoFarmLoop()
     end
 end
 
--- 11. AUTO MISSIONS
+-- 10. AUTO MISSIONS
 local autoMissionsActive = false
 
 local function checkMission(mission)
@@ -340,7 +250,7 @@ local function autoMissionsLoop()
     end
 end
 
--- 12. TELEPORTS (FUNCIONES)
+-- 11. TELEPORTS (FUNCIONES)
 local function saveCurrentLocation(name)
     local char = game:GetService("Players").LocalPlayer.Character
     if not char then notify("❌ Personaje no encontrado"); return false end
@@ -394,7 +304,7 @@ local function listTeleports()
     return names
 end
 
--- 13. FLY
+-- 12. FLY
 local flyActive = false
 local flySpeed = 40
 local flyBodyVelocity = nil
@@ -460,7 +370,7 @@ local function toggleFly()
     return flyActive
 end
 
--- 14. INFINITE JUMP
+-- 13. INFINITE JUMP
 local jumpActive = false
 
 local function toggleInfiniteJump()
@@ -486,7 +396,7 @@ local function toggleInfiniteJump()
     return jumpActive
 end
 
--- 15. TIME DISPLAY
+-- 14. TIME DISPLAY
 local timeActive = true
 local timeGui = nil
 local timeLabel = nil
@@ -560,7 +470,7 @@ local function toggleTime()
     return timeActive
 end
 
--- 16. ANTI-STAFF
+-- 15. ANTI-STAFF
 local antiStaffActive = true
 local staffDetected = false
 
@@ -594,7 +504,7 @@ local function toggleAntiStaff()
     return antiStaffActive
 end
 
--- 17. ANTI-AFK
+-- 16. ANTI-AFK
 local antiAFKActive = true
 local lastActivity = tick()
 
@@ -621,7 +531,7 @@ local function toggleAntiAFK()
     return antiAFKActive
 end
 
--- 18. ANTI-BAN (HOOK DE KICK)
+-- 17. ANTI-BAN (HOOK DE KICK)
 local oldNamecall = getrawmetatable(game).__namecall
 setreadonly(getrawmetatable(game), false)
 getrawmetatable(game).__namecall = newcclosure(function(self, ...)
@@ -635,26 +545,58 @@ end)
 setreadonly(getrawmetatable(game), true)
 writeLog("Anti-Ban/Kick activo")
 
--- 19. CREAR VENTANA PRINCIPAL CON RAYFIELD (TODAS LAS PESTAÑAS)
+-- 18. CREAR VENTANA PRINCIPAL CON WINDUI
 local function createMainWindow()
-    local window = Rayfield:CreateWindow({
-        Name = "⚒️ RC2 COMPLETE",
-        Icon = "rbxassetid://4483362458",
-        LoadingTitle = "Cargando RC2...",
-        LoadingSubtitle = "by orvehack",
-        ConfigurationSaving = {
-           Enabled = true,
-           FolderName = folder,
-       },
+    local window = WindUI:CreateWindow({
+        Title   = "RC2 COMPLETE",
+        Author  = "by orvehack",
+        Folder  = "rc2_data",
+        Icon    = "pickaxe", -- Icono de pico
+        Theme   = "Dark",
+        Acrylic = true,
+        Transparent = true,
+        Size    = UDim2.fromOffset(680, 460),
+        MinSize = Vector2.new(560, 350),
+        MaxSize = Vector2.new(850, 560),
+        Resizable  = true,
+        AutoScale  = true,
+        NewElements = true,
+        HideSearchBar = false,
+        ScrollBarEnabled = false,
+        SideBarWidth = 200,
+        Topbar = {
+            Height      = 44,
+            ButtonsType = "Default",
+        },
+        OpenButton = {
+            Title = "RC2",
+            Icon = "pickaxe",
+            CornerRadius = UDim.new(1, 0),
+            StrokeThickness = 3,
+            Enabled = true,
+            Draggable = true,
+            OnlyMobile = false,
+            Scale = 1,
+            Color = ColorSequence.new(
+                Color3.fromHex("#000000"),
+                Color3.fromHex("#000000")
+            ),
+        },
+        User = {
+            Enabled  = true,
+            Anonymous = true,
+        },
     })
 
     -- ====== PESTAÑA 1: FARM ======
-    local farmTab = window:CreateTab("🌱 Farm", 0)
+    local farmTab = window:Tab({
+        Title = "🌱 Farm",
+        Icon = "pickaxe"
+    })
 
-    farmTab:CreateToggle({
-        Name = "⛏️ AutoFarm",
-        CurrentValue = false,
-        Flag = "AutoFarm",
+    farmTab:Toggle({
+        Title = "⛏️ AutoFarm",
+        Value = false,
         Callback = function(Value)
             autoFarmActive = Value
             if autoFarmActive then
@@ -666,9 +608,9 @@ local function createMainWindow()
         end,
     })
 
-    farmTab:CreateParagraph({
-        Title = "📋 Selecciona minerales",
-        Content = "Toca los botones para seleccionar/deseleccionar",
+    farmTab:Paragraph({
+        Title = "📋 Minerales seleccionados",
+        Content = "Toca los botones para seleccionar",
     })
 
     local function createOreButtons()
@@ -680,8 +622,8 @@ local function createMainWindow()
             end
         end
         for _, name in ipairs(unique) do
-            farmTab:CreateButton({
-                Name = name .. (table.find(selectedOres, name) and " ✅" or ""),
+            farmTab:Button({
+                Title = name .. (table.find(selectedOres, name) and " ✅" or ""),
                 Callback = function()
                     local idx = table.find(selectedOres, name)
                     if idx then
@@ -695,8 +637,8 @@ local function createMainWindow()
         end
     end
 
-    farmTab:CreateButton({
-        Name = "🔄 Refrescar minerales",
+    farmTab:Button({
+        Title = "🔄 Refrescar minerales",
         Callback = function()
             createOreButtons()
             notify("🔄 Lista actualizada")
@@ -704,12 +646,14 @@ local function createMainWindow()
     })
 
     -- ====== PESTAÑA 2: MISSIONS ======
-    local missionsTab = window:CreateTab("📜 Missions", 1)
+    local missionsTab = window:Tab({
+        Title = "📜 Missions",
+        Icon = "scroll"
+    })
 
-    missionsTab:CreateToggle({
-        Name = "🤖 AutoMissions",
-        CurrentValue = false,
-        Flag = "AutoMissions",
+    missionsTab:Toggle({
+        Title = "🤖 AutoMissions",
+        Value = false,
         Callback = function(Value)
             autoMissionsActive = Value
             if autoMissionsActive then
@@ -721,16 +665,16 @@ local function createMainWindow()
         end,
     })
 
-    missionsTab:CreateParagraph({
+    missionsTab:Paragraph({
         Title = "📋 Misiones disponibles",
-        Content = "Toca una misión para iniciarla o ver su estado",
+        Content = "Toca una misión para iniciarla",
     })
 
     local function refreshMissions()
         for _, mission in ipairs(missionsDB) do
-            local status = mission.completed and "🟢 Completada" or "⏳ Pendiente"
-            missionsTab:CreateButton({
-                Name = status .. " " .. mission.name .. " ($" .. mission.cost .. ")",
+            local status = mission.completed and "🟢" or "⏳"
+            missionsTab:Button({
+                Title = status .. " " .. mission.name .. " ($" .. mission.cost .. ")",
                 Callback = function()
                     if mission.completed then
                         notify("✅ Misión ya completada")
@@ -748,8 +692,8 @@ local function createMainWindow()
         end
     end
 
-    missionsTab:CreateButton({
-        Name = "🔄 Refrescar misiones",
+    missionsTab:Button({
+        Title = "🔄 Refrescar misiones",
         Callback = function()
             refreshMissions()
             notify("🔄 Lista actualizada")
@@ -757,9 +701,12 @@ local function createMainWindow()
     })
 
     -- ====== PESTAÑA 3: TELEPORTS ======
-    local teleTab = window:CreateTab("📍 Teleports", 2)
+    local teleTab = window:Tab({
+        Title = "📍 Teleports",
+        Icon = "map-pin"
+    })
 
-    teleTab:CreateParagraph({
+    teleTab:Paragraph({
         Title = "📌 Teleports disponibles",
         Content = "Toca para ir a una ubicación",
     })
@@ -767,8 +714,8 @@ local function createMainWindow()
     local function refreshTeleList()
         local names = listTeleports()
         for _, name in ipairs(names) do
-            teleTab:CreateButton({
-                Name = name,
+            teleTab:Button({
+                Title = name,
                 Callback = function()
                     teleportToLocation(name)
                 end,
@@ -776,31 +723,30 @@ local function createMainWindow()
         end
     end
 
-    teleTab:CreateButton({
-        Name = "🔄 Refrescar teleports",
+    teleTab:Button({
+        Title = "🔄 Refrescar teleports",
         Callback = function()
             refreshTeleList()
             notify("🔄 Lista actualizada")
         end,
     })
 
-    teleTab:CreateParagraph({
+    teleTab:Paragraph({
         Title = "💾 Guardar ubicación personalizada",
-        Content = "Escribe un nombre y guarda tu posición actual",
+        Content = "Escribe un nombre y guarda tu posición",
     })
 
     local teleName = ""
-    teleTab:CreateInput({
-        Name = "Nombre del teleport",
-        PlaceholderText = "Ej: Mi base",
-        RemoveTextAfterFocusLost = false,
+    teleTab:Input({
+        Title = "Nombre del teleport",
+        Placeholder = "Ej: Mi base",
         Callback = function(Text)
             teleName = Text
         end,
     })
 
-    teleTab:CreateButton({
-        Name = "💾 Guardar ubicación",
+    teleTab:Button({
+        Title = "💾 Guardar ubicación",
         Callback = function()
             if teleName ~= "" then
                 saveCurrentLocation(teleName)
@@ -812,87 +758,86 @@ local function createMainWindow()
     })
 
     -- ====== PESTAÑA 4: OTHERS ======
-    local othersTab = window:CreateTab("⚙️ Others", 3)
+    local othersTab = window:Tab({
+        Title = "⚙️ Others",
+        Icon = "settings"
+    })
 
-    othersTab:CreateToggle({
-        Name = "🦅 Fly",
-        CurrentValue = false,
-        Flag = "Fly",
+    othersTab:Toggle({
+        Title = "🦅 Fly",
+        Value = false,
         Callback = function(Value)
             toggleFly()
         end,
     })
 
-    othersTab:CreateSlider({
-        Name = "🚀 Velocidad de Fly",
+    othersTab:Slider({
+        Title = "🚀 Velocidad de Fly",
         Min = 20,
         Max = 100,
         Default = 40,
-        Color = Color3.fromRGB(255, 200, 80),
-        Increment = 5,
-        ValueName = "km/h",
+        Step = 5,
         Callback = function(Value)
             flySpeed = Value
         end,
     })
 
-    othersTab:CreateToggle({
-        Name = "🦘 Infinite Jump",
-        CurrentValue = false,
-        Flag = "InfiniteJump",
+    othersTab:Toggle({
+        Title = "🦘 Infinite Jump",
+        Value = false,
         Callback = function(Value)
             toggleInfiniteJump()
         end,
     })
 
-    othersTab:CreateToggle({
-        Name = "🕐 Time Display",
-        CurrentValue = true,
-        Flag = "TimeDisplay",
+    othersTab:Toggle({
+        Title = "🕐 Time Display",
+        Value = true,
         Callback = function(Value)
             toggleTime()
         end,
     })
 
-    othersTab:CreateToggle({
-        Name = "🛡️ Anti-Staff",
-        CurrentValue = true,
-        Flag = "AntiStaff",
+    othersTab:Toggle({
+        Title = "🛡️ Anti-Staff",
+        Value = true,
         Callback = function(Value)
             toggleAntiStaff()
         end,
     })
 
-    othersTab:CreateToggle({
-        Name = "💤 Anti-AFK",
-        CurrentValue = true,
-        Flag = "AntiAFK",
+    othersTab:Toggle({
+        Title = "💤 Anti-AFK",
+        Value = true,
         Callback = function(Value)
             toggleAntiAFK()
         end,
     })
 
     -- ====== PESTAÑA 5: SETTINGS ======
-    local settingsTab = window:CreateTab("⚙️ Settings", 4)
+    local settingsTab = window:Tab({
+        Title = "⚙️ Settings",
+        Icon = "settings"
+    })
 
-    settingsTab:CreateButton({
-        Name = "💰 Actualizar dinero",
+    settingsTab:Button({
+        Title = "💰 Actualizar dinero",
         Callback = function()
             local money = getPlayerMoney()
             notify("💰 $" .. money)
         end,
     })
 
-    settingsTab:CreateButton({
-        Name = "⛏️ Ver pico equipado",
+    settingsTab:Button({
+        Title = "⛏️ Ver pico equipado",
         Callback = function()
             local tier = getPlayerPickaxeTier()
             notify("⛏️ Tier del pico: " .. tier)
         end,
     })
 
-    settingsTab:CreateButton({
-        Name = "📜 Ver Logs de hoy",
+    settingsTab:Button({
+        Title = "📜 Ver Logs de hoy",
         Callback = function()
             local date = os.date("%Y-%m-%d")
             local logFile = logsFolder .. "/log_" .. date .. ".txt"
@@ -905,8 +850,8 @@ local function createMainWindow()
         end,
     })
 
-    settingsTab:CreateButton({
-        Name = "🔄 Recargar script",
+    settingsTab:Button({
+        Title = "🔄 Recargar script",
         Callback = function()
             notify("🔄 Recargando...")
             task.wait(1)
@@ -917,9 +862,9 @@ local function createMainWindow()
     return window
 end
 
--- 20. INICIALIZACIÓN
+-- 19. INICIALIZACIÓN
 local success, err = pcall(function()
-    createFloatingButton()
+    local window = createMainWindow()
     notify("🚀 RC2 COMPLETE cargado correctamente", 4)
     writeLog("Script cargado correctamente")
 end)
@@ -929,6 +874,6 @@ if not success then
     writeLog("Error de carga: " .. tostring(err), true)
 end
 
-print("✅ RC2 COMPLETE cargado")
+print("✅ RC2 COMPLETE cargado con WindUI")
 print("📁 Carpeta: " .. folder)
-print("🟢 Toca el botón flotante para abrir la GUI")
+print("🟢 Usa el botón flotante para abrir la GUI")
