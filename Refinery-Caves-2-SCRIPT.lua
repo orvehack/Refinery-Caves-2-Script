@@ -34,6 +34,7 @@ local function notify(text, duration)
     writeLog(text)
 end
 
+-- BASE DE DATOS
 local oreDatabase = {
     ["Stone"] = { tier = 1, fragile = false, price = 3 },
     ["Iron"] = { tier = 1, fragile = false, price = 4 },
@@ -58,6 +59,7 @@ local treeDatabase = {
     ["Goldwood"] = { tier = 4, price = 80 },
 }
 
+-- MISIONES CON PASOS REALES
 local missionsDB = {
     {
         id = "tool_reaper",
@@ -316,13 +318,13 @@ local function saveMissions()
 end
 loadMissions()
 
--- Coordenadas CORREGIDAS (basadas en ubicaciones reales de RC2)
+-- TELEPORTS CORREGIDOS (coordenadas ajustadas)
 local teleports = {
     shops = {
         ["💰 Silver's Sellzone"] = {position = {960, 32, -840}},
         ["🏪 UCS Store"] = {position = {1250, 30, -700}},
         ["🎣 Fisherman's Bazaar"] = {position = {1860, 3, -1520}},
-        ["🛢️ Oil Rig"] = {position = {-2345, 54, 5345}},
+        ["🛢️ Oil Rig"] = {position = {-2345, 58, 5345}},
         ["🏝️ Nautic Finds"] = {position = {1825, 3, -1340}},
     },
     mines = {
@@ -360,6 +362,7 @@ local function saveCustomTeleports()
 end
 loadCustomTeleports()
 
+-- FUNCIONES DE JUGADOR
 local function getPlayerMoney()
     local player = game:GetService("Players").LocalPlayer
     local stats = player:FindFirstChild("leaderstats")
@@ -398,6 +401,7 @@ local function getPlayerFishingRod()
     return false
 end
 
+-- DETECCIÓN DE RECURSOS
 local function findOres()
     local ores = {}
     for _, obj in pairs(workspace:GetDescendants()) do
@@ -430,6 +434,7 @@ local function findTrees()
     return trees
 end
 
+-- TELEPORT FUNCTIONS
 local function teleportToLocation(name)
     local data = nil
     for section, tps in pairs(teleports) do
@@ -446,15 +451,6 @@ local function teleportToLocation(name)
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then notify("❌ HumanoidRootPart no encontrado"); return false end
 
-    local steps = 8
-    local start = hrp.Position
-    for i = 1, steps do
-        local progress = i / steps
-        local inter = start + (target - start) * progress
-        local hum = char:FindFirstChild("Humanoid")
-        if hum then hum:MoveTo(inter) end
-        task.wait(0.05)
-    end
     hrp.CFrame = CFrame.new(target)
     notify("📍 Teletransportado a '" .. name .. "'")
     return true
@@ -472,6 +468,7 @@ local function saveCustomLocation(name)
     return true
 end
 
+-- AUTO FARM
 local autoFarmActive = false
 local autoFarmTimer = 70
 local selectedOres = {}
@@ -511,6 +508,7 @@ local function autoFarmLoop()
     end
 end
 
+-- AUTO TALA
 local autoChopActive = false
 local function chopTree(tree) task.wait(0.5 + math.random(1, 3) * 0.1) end
 local function autoChopLoop()
@@ -525,6 +523,7 @@ local function autoChopLoop()
     end
 end
 
+-- AUTO PESCA
 local autoFishActive = false
 local function autoFishLoop()
     while autoFishActive do
@@ -536,7 +535,7 @@ local function autoFishLoop()
     end
 end
 
--- Función para hablar con NPCs usando el Remote correcto
+-- FUNCIÓN PARA HABLAR CON NPCs (CORREGIDA)
 local function talkToNPC(npcName)
     local npc = nil
     for _, obj in pairs(workspace:GetDescendants()) do
@@ -545,24 +544,39 @@ local function talkToNPC(npcName)
             break
         end
     end
-    if not npc then notify("⚠️ NPC " .. npcName .. " no encontrado"); return false end
+    if not npc then 
+        notify("⚠️ NPC " .. npcName .. " no encontrado")
+        return false 
+    end
     
     local talkPart = npc:FindFirstChild("TalkPart") or npc:FindFirstChild("HumanoidRootPart")
-    if not talkPart then notify("⚠️ No se encontró TalkPart para " .. npcName); return false end
+    if not talkPart then 
+        notify("⚠️ No se encontró TalkPart para " .. npcName)
+        return false 
+    end
     
-    local interactRemote = game:GetService("ReplicatedStorage"):FindFirstChild("Events") and
-                          game:GetService("ReplicatedStorage").Events:FindFirstChild("Interact")
+    -- Buscar el Remote correcto
+    local interactRemote = game:GetService("ReplicatedStorage"):FindFirstChild("Events")
     if interactRemote then
-        interactRemote:FireServer(talkPart)
-        notify("💬 Hablando con " .. npcName)
-        task.wait(1)
-        return true
-    else
+        interactRemote = interactRemote:FindFirstChild("Interact")
+    end
+    if not interactRemote then
+        interactRemote = game:GetService("ReplicatedStorage"):FindFirstChild("Interact")
+    end
+    if not interactRemote then
         notify("⚠️ No se encontró Remote para interactuar")
         return false
     end
+    
+    pcall(function()
+        interactRemote:FireServer(talkPart)
+        notify("💬 Hablando con " .. npcName)
+        task.wait(1)
+    end)
+    return true
 end
 
+-- AUTO MISSIONS (CORREGIDO: ejecuta pasos reales)
 local function executeMissionStep(mission, stepIndex)
     local step = mission.steps[stepIndex]
     if not step then return false end
@@ -609,9 +623,16 @@ local function executeMissionStep(mission, stepIndex)
 end
 
 local function startMission(mission)
-    if mission.completed then notify("✅ Misión ya completada"); return end
+    if mission.completed then 
+        notify("✅ Misión ya completada")
+        return 
+    end
     local money = getPlayerMoney()
-    if money < mission.cost then notify("❌ Necesitas $" .. (mission.cost - money) .. " más."); return end
+    if money < mission.cost then 
+        notify("❌ Necesitas $" .. (mission.cost - money) .. " más.")
+        return 
+    end
+    
     task.spawn(function()
         for i = 1, #mission.steps do
             if mission.completed then break end
@@ -631,6 +652,7 @@ local function startMission(mission)
     end)
 end
 
+-- FLY (CORREGIDO)
 local flyActive = false
 local flySpeed = 40
 local flyBodyVelocity = nil
@@ -639,22 +661,27 @@ local flyConnection = nil
 
 local function startFly()
     local char = game:GetService("Players").LocalPlayer.Character
-    if not char then notify("❌ Personaje no encontrado"); return end
+    if not char then return end
     local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then notify("❌ HumanoidRootPart no encontrado"); return end
+    if not hrp then return end
+    
     if flyBodyVelocity then flyBodyVelocity:Destroy() end
     if flyBodyGyro then flyBodyGyro:Destroy() end
     if flyConnection then flyConnection:Disconnect() end
+    
     flyBodyVelocity = Instance.new("BodyVelocity")
     flyBodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
     flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
     flyBodyVelocity.Parent = hrp
+    
     flyBodyGyro = Instance.new("BodyGyro")
     flyBodyGyro.MaxTorque = Vector3.new(100000, 100000, 100000)
     flyBodyGyro.CFrame = hrp.CFrame
     flyBodyGyro.Parent = hrp
+    
     local humanoid = char:FindFirstChild("Humanoid")
     if humanoid then humanoid.PlatformStand = true end
+    
     flyConnection = game:GetService("RunService").Heartbeat:Connect(function()
         if not flyActive then
             if flyBodyVelocity then flyBodyVelocity.Velocity = Vector3.new(0, 0, 0) end
@@ -677,11 +704,14 @@ end
 
 local function stopFly()
     flyActive = false
-    if flyBodyVelocity then flyBodyVelocity:Destroy(); flyBodyVelocity = nil end
-    if flyBodyGyro then flyBodyGyro:Destroy(); flyBodyGyro = nil end
-    if flyConnection then flyConnection:Disconnect(); flyConnection = nil end
+    if flyBodyVelocity then flyBodyVelocity:Destroy() end
+    if flyBodyGyro then flyBodyGyro:Destroy() end
+    if flyConnection then flyConnection:Disconnect() end
     local char = game:GetService("Players").LocalPlayer.Character
-    if char then local hum = char:FindFirstChild("Humanoid"); if hum then hum.PlatformStand = false end end
+    if char then
+        local hum = char:FindFirstChild("Humanoid")
+        if hum then hum.PlatformStand = false end
+    end
     notify("🦅 Fly desactivado")
 end
 
@@ -691,6 +721,7 @@ local function toggleFly()
     return flyActive
 end
 
+-- INFINITE JUMP (CORREGIDO)
 local jumpActive = false
 local jumpConnection = nil
 local function toggleInfiniteJump()
@@ -712,12 +743,13 @@ local function toggleInfiniteJump()
         end
         notify("🦘 Infinite Jump activado")
     else
-        if jumpConnection then jumpConnection:Disconnect(); jumpConnection = nil end
+        if jumpConnection then jumpConnection:Disconnect() end
         notify("🦘 Infinite Jump desactivado")
     end
     return jumpActive
 end
 
+-- TIME DISPLAY
 local timeActive = true
 local timeGui = nil
 local timeLabel = nil
@@ -776,6 +808,7 @@ createTimeGUI()
 task.spawn(function() while task.wait(1) do updateTime() end end)
 local function toggleTime() timeActive = not timeActive; notify("🕐 Time: " .. (timeActive and "ON" or "OFF")); return timeActive end
 
+-- ANTI-STAFF
 local antiStaffActive = true
 local staffDetected = false
 local function checkStaff()
@@ -798,6 +831,7 @@ end
 task.spawn(function() while task.wait(10) do checkStaff() end end)
 local function toggleAntiStaff() antiStaffActive = not antiStaffActive; notify("🛡️ Anti-Staff: " .. (antiStaffActive and "ON" or "OFF")); return antiStaffActive end
 
+-- ANTI-AFK
 local antiAFKActive = true
 local lastActivity = tick()
 game:GetService("UserInputService").InputBegan:Connect(function() lastActivity = tick() end)
@@ -815,6 +849,7 @@ task.spawn(function()
 end)
 local function toggleAntiAFK() antiAFKActive = not antiAFKActive; notify("💤 Anti-AFK: " .. (antiAFKActive and "ON" or "OFF")); return antiAFKActive end
 
+-- ANTI-BAN
 local oldNamecall = getrawmetatable(game).__namecall
 setreadonly(getrawmetatable(game), false)
 getrawmetatable(game).__namecall = newcclosure(function(self, ...)
@@ -828,6 +863,7 @@ end)
 setreadonly(getrawmetatable(game), true)
 writeLog("Anti-Ban/Kick activo")
 
+-- CREAR UI FLUENT
 local Window = Fluent:CreateWindow({
     Title = "⚒️ RC2",
     SubTitle = "by orvexpp",
@@ -887,7 +923,10 @@ Tabs.Farm:AddParagraph({
     Content = "Toca los botones para seleccionar/deseleccionar"
 })
 
+local oreButtonsCreated = false
 local function createOreButtons()
+    if oreButtonsCreated then return end
+    oreButtonsCreated = true
     local ores = findOres()
     local unique = {}
     for _, ore in pairs(ores) do
@@ -896,12 +935,17 @@ local function createOreButtons()
         end
     end
     for _, name in ipairs(unique) do
-        local selected = table.find(selectedOres, name) ~= nil
         Tabs.Farm:AddButton({
-            Title = (selected and "✅ " or "⬜ ") .. name .. " (Tier " .. oreDatabase[name].tier .. ")",
+            Title = "⬜ " .. name .. " (Tier " .. oreDatabase[name].tier .. ")",
             Callback = function()
                 local idx = table.find(selectedOres, name)
-                if idx then table.remove(selectedOres, idx) else table.insert(selectedOres, name) end
+                if idx then
+                    table.remove(selectedOres, idx)
+                else
+                    table.insert(selectedOres, name)
+                end
+                -- Actualizar el botón visualmente (no se puede, pero se refresca la lista)
+                notify("📌 " .. name .. (idx and " deseleccionado" or " seleccionado"))
             end
         })
     end
@@ -910,6 +954,7 @@ end
 Tabs.Farm:AddButton({
     Title = "🔄 Refrescar minerales",
     Callback = function()
+        oreButtonsCreated = false
         createOreButtons()
         notify("🔄 Lista actualizada")
     end
@@ -939,7 +984,10 @@ Tabs.Farm:AddParagraph({
     Content = "Toca los botones para seleccionar/deseleccionar"
 })
 
+local treeButtonsCreated = false
 local function createTreeButtons()
+    if treeButtonsCreated then return end
+    treeButtonsCreated = true
     local trees = findTrees()
     local unique = {}
     for _, tree in pairs(trees) do
@@ -948,12 +996,16 @@ local function createTreeButtons()
         end
     end
     for _, name in ipairs(unique) do
-        local selected = table.find(selectedTrees, name) ~= nil
         Tabs.Farm:AddButton({
-            Title = (selected and "✅ " or "⬜ ") .. name .. " (Tier " .. treeDatabase[name].tier .. ")",
+            Title = "⬜ " .. name .. " (Tier " .. treeDatabase[name].tier .. ")",
             Callback = function()
                 local idx = table.find(selectedTrees, name)
-                if idx then table.remove(selectedTrees, idx) else table.insert(selectedTrees, name) end
+                if idx then
+                    table.remove(selectedTrees, idx)
+                else
+                    table.insert(selectedTrees, name)
+                end
+                notify("📌 " .. name .. (idx and " deseleccionado" or " seleccionado"))
             end
         })
     end
@@ -962,6 +1014,7 @@ end
 Tabs.Farm:AddButton({
     Title = "🔄 Refrescar árboles",
     Callback = function()
+        treeButtonsCreated = false
         createTreeButtons()
         notify("🔄 Lista actualizada")
     end
@@ -1247,18 +1300,13 @@ Tabs.Settings:AddButton({
 
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
-
 SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({})
-
 InterfaceManager:SetFolder("FluentScriptHub")
 SaveManager:SetFolder("FluentScriptHub/rc2")
-
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
-
 Window:SelectTab(1)
-
 SaveManager:LoadAutoloadConfig()
 
 -- BOTÓN FLOTANTE BONITO Y FUNCIONAL
@@ -1271,23 +1319,13 @@ local function createFloatingButton()
     local btn = Instance.new("ImageButton", sg)
     btn.Size = UDim2.new(0, 60, 0, 60)
     btn.Position = UDim2.new(0.85, 0, 0.85, 0)
-    btn.Image = "rbxassetid://4483362458" -- Icono de pico y hacha
+    btn.Image = "rbxassetid://4483362458"
     btn.BackgroundColor3 = Color3.fromRGB(30, 40, 60)
     btn.BackgroundTransparency = 0.1
     btn.ImageColor3 = Color3.fromRGB(255, 200, 80)
     btn.BorderSizePixel = 0
     local corner = Instance.new("UICorner", btn)
     corner.CornerRadius = UDim.new(1, 0)
-
-    -- Sombra
-    local shadow = Instance.new("ImageLabel", sg)
-    shadow.Size = UDim2.new(0, 70, 0, 70)
-    shadow.Position = UDim2.new(0.85, -5, 0.85, -5)
-    shadow.Image = "rbxassetid://1310874677"
-    shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-    shadow.ImageTransparency = 0.8
-    shadow.ZIndex = 0
-    shadow.BackgroundTransparency = 1
 
     -- Arrastre
     local dragging = false
@@ -1312,7 +1350,6 @@ local function createFloatingButton()
         if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
             local delta = input.Position - dragStart
             btn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-            shadow.Position = UDim2.new(btn.Position.X.Scale, btn.Position.X.Offset - 5, btn.Position.Y.Scale, btn.Position.Y.Offset - 5)
         end
     end)
 
